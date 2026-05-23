@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.mahjongcoach.data.PaipuDetail
 import com.example.mahjongcoach.data.ParsedPaipuLink
 import com.example.mahjongcoach.data.SampleRound
 import com.example.mahjongcoach.domain.DecisionPoint
@@ -78,8 +79,11 @@ fun MahjongCoachApp(viewModel: ReviewViewModel = viewModel()) {
                     samples = current.samples,
                     input = current.input,
                     parsedLink = current.parsedLink,
+                    paipuDetail = current.paipuDetail,
+                    isDownloading = current.isDownloading,
                     onInputChanged = viewModel::updateLinkInput,
                     onParseClick = viewModel::parseCurrentLink,
+                    onDownloadClick = viewModel::downloadPaipuDetail,
                     onSampleSelected = viewModel::loadSampleRound,
                 )
                 is ReviewUiState.Ready -> ReviewScreen(
@@ -114,8 +118,11 @@ private fun LinkEntryScreen(
     samples: List<SampleRound>,
     input: String,
     parsedLink: ParsedPaipuLink?,
+    paipuDetail: PaipuDetail?,
+    isDownloading: Boolean,
     onInputChanged: (String) -> Unit,
     onParseClick: () -> Unit,
+    onDownloadClick: () -> Unit,
     onSampleSelected: (String) -> Unit,
 ) {
     LazyColumn(
@@ -135,8 +142,11 @@ private fun LinkEntryScreen(
             LinkInputCard(
                 input = input,
                 parsedLink = parsedLink,
+                paipuDetail = paipuDetail,
+                isDownloading = isDownloading,
                 onInputChanged = onInputChanged,
                 onParseClick = onParseClick,
+                onDownloadClick = onDownloadClick,
                 onPreviewClick = { samples.firstOrNull()?.let { onSampleSelected(it.id) } },
             )
         }
@@ -160,8 +170,11 @@ private fun LinkEntryScreen(
 private fun LinkInputCard(
     input: String,
     parsedLink: ParsedPaipuLink?,
+    paipuDetail: PaipuDetail?,
+    isDownloading: Boolean,
     onInputChanged: (String) -> Unit,
     onParseClick: () -> Unit,
+    onDownloadClick: () -> Unit,
     onPreviewClick: () -> Unit,
 ) {
     Card(
@@ -182,12 +195,18 @@ private fun LinkInputCard(
                 Button(onClick = onParseClick) {
                     Text("解析链接")
                 }
+                Button(onClick = onDownloadClick) {
+                    Text(if (isDownloading) "下载中" else "下载详情")
+                }
                 Button(onClick = onPreviewClick) {
                     Text("预览报告")
                 }
             }
             parsedLink?.let {
                 LinkResultPanel(it)
+            }
+            paipuDetail?.let {
+                PaipuDetailPanel(it)
             }
         }
     }
@@ -210,6 +229,26 @@ private fun LinkResultPanel(parsedLink: ParsedPaipuLink) {
         parsedLink.modeId?.let { DetailLine("模式 ID", it) }
         DetailLine("状态", if (parsedLink.canStartReview) "已识别，等待完整牌谱数据接入" else "暂不支持")
         Text(parsedLink.message, color = Color(0xFF5A625F))
+    }
+}
+
+@Composable
+private fun PaipuDetailPanel(detail: PaipuDetail) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFFFF2DD), RoundedCornerShape(8.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text("牌谱详情", fontWeight = FontWeight.Bold, color = Color(0xFF7A4A12))
+        detail.uuid?.let { DetailLine("牌谱 UUID", it) }
+        detail.officialUrl?.let { DetailLine("官方牌谱链接", it) }
+        detail.encodedAccountId?.let { DetailLine("视角标识", it) }
+        detail.amaeRecordId?.let { DetailLine("牌谱屋记录", it) }
+        detail.modeId?.let { DetailLine("模式 ID", it) }
+        DetailLine("下载状态", detail.fetchStatus.name)
+        Text(detail.message, color = Color(0xFF5A625F))
     }
 }
 

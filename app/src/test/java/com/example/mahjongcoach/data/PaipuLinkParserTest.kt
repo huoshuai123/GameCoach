@@ -25,9 +25,33 @@ class PaipuLinkParserTest {
 
         assertEquals(LinkSource.AmaeKoromo, parsed.source)
         assertEquals("16", parsed.modeId)
+        assertEquals("zh", parsed.zone)
         assertEquals("abc123", parsed.amaeRecordId)
         assertEquals("938523791", parsed.encodedAccountId)
         assertTrue(parsed.canStartReview)
+    }
+
+    @Test
+    fun downloader_buildsOfficialDetailForDirectMahjongSoulLink() {
+        val parsed = PaipuLinkParser.parse(
+            "https://mahjongsoul.game.yo-star.com/?paipu=250130-56d469f5-c213-4b1c-8fe1-4f7b006ab82e_a938523791"
+        )
+        val detail = PaipuDetailDownloader().download(parsed)
+
+        assertEquals(PaipuFetchStatus.Ready, detail.fetchStatus)
+        assertEquals("250130-56d469f5-c213-4b1c-8fe1-4f7b006ab82e", detail.uuid)
+        assertEquals(
+            "https://mahjongsoul.game.yo-star.com/?paipu=250130-56d469f5-c213-4b1c-8fe1-4f7b006ab82e_a938523791",
+            detail.officialUrl,
+        )
+    }
+
+    @Test
+    fun downloader_buildsAmaeViewUrl() {
+        val url = PaipuDetailDownloader("https://example.test/")
+            .buildAmaeViewUrl("3", "16", "abc123", "938523791")
+
+        assertEquals("https://example.test/api/v2/pl4/view_game/3/16/abc123/938523791", url)
     }
 
     @Test

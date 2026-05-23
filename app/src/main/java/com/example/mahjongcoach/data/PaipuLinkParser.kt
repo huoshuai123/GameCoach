@@ -9,6 +9,7 @@ data class ParsedPaipuLink(
     val encodedAccountId: String?,
     val amaeRecordId: String?,
     val modeId: String?,
+    val zone: String?,
     val status: LinkParseStatus,
     val message: String,
 ) {
@@ -29,7 +30,7 @@ enum class LinkParseStatus {
 object PaipuLinkParser {
     private val uuidRegex = Regex("""\d{6}-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}""")
     private val accountRegex = Regex("""_a(\d+)""")
-    private val amaeViewRegex = Regex("""/view_game/[^/]+/([^/]+)/([^/?#]+)(?:/(\d+))?""")
+    private val amaeViewRegex = Regex("""/view_game/([^/]+)/([^/]+)/([^/?#]+)(?:/(\d+))?""")
 
     fun parse(input: String): ParsedPaipuLink {
         val trimmed = input.trim()
@@ -51,9 +52,10 @@ object PaipuLinkParser {
         val uuid = uuidRegex.find(decoded)?.value
         val accountId = accountRegex.find(decoded)?.groupValues?.getOrNull(1)
         val amaeMatch = amaeViewRegex.find(decoded)
-        val modeId = amaeMatch?.groupValues?.getOrNull(1)?.ifBlank { null }
-        val amaeRecordId = amaeMatch?.groupValues?.getOrNull(2)?.ifBlank { null }
-        val amaeAccountId = amaeMatch?.groupValues?.getOrNull(3)?.ifBlank { null }
+        val zone = amaeMatch?.groupValues?.getOrNull(1)?.ifBlank { null }
+        val modeId = amaeMatch?.groupValues?.getOrNull(2)?.ifBlank { null }
+        val amaeRecordId = amaeMatch?.groupValues?.getOrNull(3)?.ifBlank { null }
+        val amaeAccountId = amaeMatch?.groupValues?.getOrNull(4)?.ifBlank { null }
 
         if (uuid != null) {
             return ParsedPaipuLink(
@@ -63,6 +65,7 @@ object PaipuLinkParser {
                 encodedAccountId = accountId ?: amaeAccountId,
                 amaeRecordId = amaeRecordId,
                 modeId = modeId,
+                zone = zone,
                 status = LinkParseStatus.Recognized,
                 message = "已识别牌谱 UUID。当前版本先使用本地中文样例演示复盘流程，不自动登录或下载完整牌谱。",
             )
@@ -76,6 +79,7 @@ object PaipuLinkParser {
                 encodedAccountId = amaeAccountId,
                 amaeRecordId = amaeRecordId,
                 modeId = modeId,
+                zone = zone,
                 status = LinkParseStatus.Recognized,
                 message = "已识别牌谱屋记录。牌谱屋可辅助定位记录，但当前版本不直接请求第三方完整牌谱数据。",
             )
@@ -88,6 +92,7 @@ object PaipuLinkParser {
             encodedAccountId = null,
             amaeRecordId = null,
             modeId = null,
+            zone = null,
             status = LinkParseStatus.Unsupported,
             message = "未找到可识别的牌谱 UUID 或牌谱屋记录 ID。",
         )
@@ -101,6 +106,7 @@ object PaipuLinkParser {
             encodedAccountId = null,
             amaeRecordId = null,
             modeId = null,
+            zone = null,
             status = LinkParseStatus.Unsupported,
             message = message,
         )
