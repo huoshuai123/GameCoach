@@ -1,0 +1,44 @@
+{
+  "title": "San11 AI Mod Demo - 194 Scenario Snapshot",
+  "forces": [
+    {
+      "name": "Cao Cao",
+      "strategic_goal": "contain Yuan Shao, then expand south",
+      "available_troops": 92000,
+      "frontier_troops": 52000,
+      "food": 210000,
+      "neighbor_threat": 0.72,
+      "target_cohesion": 0.62,
+      "candidate_targets": [
+        {"city": "Pu Yang", "score": 82},
+        {"city": "Wan", "score": 58}
+      ]
+    },
+    {
+      "name": "Liu Bei",
+      "strategic_goal": "",
+      "available_troops": 43000,
+      "frontier_troops": 12000,
+      "food": 62000,
+      "neighbor_threat": 0.35,
+      "target_cohesion": 0.30,
+      "candidate_targets": [
+        {"city": "Xiao Pei", "score": 66},
+        {"city": "Shou Chun", "score": 64}
+      ]
+    },
+    {
+      "name": "Sun Ce",
+      "strategic_goal": "unify Jiangdong",
+      "available_troops": 58000,
+      "frontier_troops": 34000,
+      "food": 96000,
+      "neighbor_threat": 0.42,
+      "target_cohesion": 0.51,
+      "candidate_targets": [
+        {"city": "Lu Jiang", "score": 74},
+        {"city": "Jian Ye", "score": 46}
+      ]
+    }
+  ]
+}
