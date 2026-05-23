@@ -1,0 +1,54 @@
+{
+  "title": "Mahjong Soul Review Demo - East 2",
+  "source": "structured-demo",
+  "turns": [
+    {
+      "turn": 5,
+      "chosen_discard": "5m",
+      "best_discard": "9p",
+      "safest_discard": "9p",
+      "ukeire_chosen": 18,
+      "ukeire_best": 26,
+      "chosen_danger": 0.18,
+      "best_danger": 0.10,
+      "opponent_pressure": 0.15,
+      "shanten_after": 2
+    },
+    {
+      "turn": 9,
+      "chosen_discard": "7s",
+      "best_discard": "1m",
+      "safest_discard": "1m",
+      "ukeire_chosen": 22,
+      "ukeire_best": 24,
+      "chosen_danger": 0.62,
+      "best_danger": 0.18,
+      "opponent_pressure": 0.90,
+      "shanten_after": 1
+    },
+    {
+      "turn": 12,
+      "chosen_discard": "6p",
+      "best_discard": "2z",
+      "safest_discard": "2z",
+      "ukeire_chosen": 10,
+      "ukeire_best": 11,
+      "chosen_danger": 0.55,
+      "best_danger": 0.12,
+      "opponent_pressure": 0.80,
+      "shanten_after": 1
+    },
+    {
+      "turn": 15,
+      "chosen_discard": "3m",
+      "best_discard": "3m",
+      "safest_discard": "3m",
+      "ukeire_chosen": 8,
+      "ukeire_best": 8,
+      "chosen_danger": 0.20,
+      "best_danger": 0.20,
+      "opponent_pressure": 0.25,
+      "shanten_after": 0
+    }
+  ]
+}

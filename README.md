@@ -18,6 +18,8 @@
 python3 -m strategy_intel.cli mahjong --input samples/mahjong_round.json
 python3 -m strategy_intel.cli san11 --input samples/san11_state.json
 python3 -m unittest discover -s tests
+./gradlew testDebugUnitTest
+./gradlew assembleDebug
 ```
 
 ## 项目结构
@@ -33,6 +35,13 @@ docs/
 samples/
   mahjong_round.json           # 雀魂复盘样例输入
   san11_state.json             # 三国志 11 局势样例输入
+app/
+  src/main/assets/mahjong_round.json  # Android 内置样例牌谱
+  src/main/java/com/example/mahjongcoach/
+    data/                      # 样例牌谱读取与解析
+    domain/                    # 平台无关领域模型
+    evaluator/                 # 雀魂复盘评估器
+    ui/                        # Compose UI 状态
 strategy_intel/
   core.py                      # 通用局势评估模型
   mahjong.py                   # 雀魂复盘 Demo
