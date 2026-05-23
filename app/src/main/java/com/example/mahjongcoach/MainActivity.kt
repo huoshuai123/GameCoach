@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.mahjongcoach.data.FinalPaipuDownload
 import com.example.mahjongcoach.data.PaipuDetail
 import com.example.mahjongcoach.data.ParsedPaipuLink
 import com.example.mahjongcoach.data.SampleRound
@@ -80,10 +81,12 @@ fun MahjongCoachApp(viewModel: ReviewViewModel = viewModel()) {
                     input = current.input,
                     parsedLink = current.parsedLink,
                     paipuDetail = current.paipuDetail,
+                    finalPaipuDownload = current.finalPaipuDownload,
                     isDownloading = current.isDownloading,
                     onInputChanged = viewModel::updateLinkInput,
                     onParseClick = viewModel::parseCurrentLink,
                     onDownloadClick = viewModel::downloadPaipuDetail,
+                    onFinalDownloadClick = viewModel::prepareFinalPaipuDownload,
                     onSampleSelected = viewModel::loadSampleRound,
                 )
                 is ReviewUiState.Ready -> ReviewScreen(
@@ -119,10 +122,12 @@ private fun LinkEntryScreen(
     input: String,
     parsedLink: ParsedPaipuLink?,
     paipuDetail: PaipuDetail?,
+    finalPaipuDownload: FinalPaipuDownload?,
     isDownloading: Boolean,
     onInputChanged: (String) -> Unit,
     onParseClick: () -> Unit,
     onDownloadClick: () -> Unit,
+    onFinalDownloadClick: () -> Unit,
     onSampleSelected: (String) -> Unit,
 ) {
     LazyColumn(
@@ -143,10 +148,12 @@ private fun LinkEntryScreen(
                 input = input,
                 parsedLink = parsedLink,
                 paipuDetail = paipuDetail,
+                finalPaipuDownload = finalPaipuDownload,
                 isDownloading = isDownloading,
                 onInputChanged = onInputChanged,
                 onParseClick = onParseClick,
                 onDownloadClick = onDownloadClick,
+                onFinalDownloadClick = onFinalDownloadClick,
                 onPreviewClick = { samples.firstOrNull()?.let { onSampleSelected(it.id) } },
             )
         }
@@ -171,10 +178,12 @@ private fun LinkInputCard(
     input: String,
     parsedLink: ParsedPaipuLink?,
     paipuDetail: PaipuDetail?,
+    finalPaipuDownload: FinalPaipuDownload?,
     isDownloading: Boolean,
     onInputChanged: (String) -> Unit,
     onParseClick: () -> Unit,
     onDownloadClick: () -> Unit,
+    onFinalDownloadClick: () -> Unit,
     onPreviewClick: () -> Unit,
 ) {
     Card(
@@ -207,6 +216,12 @@ private fun LinkInputCard(
             }
             paipuDetail?.let {
                 PaipuDetailPanel(it)
+                Button(onClick = onFinalDownloadClick) {
+                    Text("下载最终牌谱")
+                }
+            }
+            finalPaipuDownload?.let {
+                FinalPaipuDownloadPanel(it)
             }
         }
     }
@@ -249,6 +264,26 @@ private fun PaipuDetailPanel(detail: PaipuDetail) {
         detail.modeId?.let { DetailLine("模式 ID", it) }
         DetailLine("下载状态", detail.fetchStatus.name)
         Text(detail.message, color = Color(0xFF5A625F))
+    }
+}
+
+@Composable
+private fun FinalPaipuDownloadPanel(download: FinalPaipuDownload) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFFFE7E2), RoundedCornerShape(8.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text("最终牌谱", fontWeight = FontWeight.Bold, color = Color(0xFF8A2F25))
+        DetailLine("状态", download.status.name)
+        download.request?.let {
+            DetailLine("UUID", it.uuid)
+            DetailLine("官方链接", it.officialUrl)
+            DetailLine("协议", "WebSocket + OAuth + protobuf")
+        }
+        Text(download.message, color = Color(0xFF5A625F))
     }
 }
 

@@ -3,6 +3,7 @@ package com.example.mahjongcoach.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.mahjongcoach.data.FinalPaipuDownloader
 import com.example.mahjongcoach.data.PaipuDetailDownloader
 import com.example.mahjongcoach.data.PaipuLinkParser
 import com.example.mahjongcoach.data.SampleRoundRepository
@@ -19,6 +20,7 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
     private val repository = SampleRoundRepository(application)
     private val evaluator = MahjongRoundEvaluator()
     private val detailDownloader = PaipuDetailDownloader()
+    private val finalPaipuDownloader = FinalPaipuDownloader()
     private val mutableState = MutableStateFlow<ReviewUiState>(ReviewUiState.Loading)
 
     val state: StateFlow<ReviewUiState> = mutableState.asStateFlow()
@@ -38,6 +40,7 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
             input = input,
             parsedLink = (current as? ReviewUiState.LinkEntry)?.parsedLink,
             paipuDetail = null,
+            finalPaipuDownload = null,
         )
     }
 
@@ -46,6 +49,7 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         mutableState.value = current.copy(
             parsedLink = PaipuLinkParser.parse(current.input),
             paipuDetail = null,
+            finalPaipuDownload = null,
             isDownloading = false,
         )
     }
@@ -60,8 +64,14 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
                 detailDownloader.download(parsed)
             }
             val latest = mutableState.value as? ReviewUiState.LinkEntry ?: return@launch
-            mutableState.value = latest.copy(isDownloading = false, paipuDetail = detail)
+            mutableState.value = latest.copy(isDownloading = false, paipuDetail = detail, finalPaipuDownload = null)
         }
+    }
+
+    fun prepareFinalPaipuDownload() {
+        val current = mutableState.value as? ReviewUiState.LinkEntry ?: return
+        val detail = current.paipuDetail ?: return
+        mutableState.value = current.copy(finalPaipuDownload = finalPaipuDownloader.prepareDownload(detail))
     }
 
     fun loadSampleRound(id: String = repository.listSamples().first().id) {

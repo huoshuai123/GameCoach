@@ -55,6 +55,55 @@ class PaipuLinkParserTest {
     }
 
     @Test
+    fun finalDownloader_preparesOfficialProtocolRequest() {
+        val detail = PaipuDetail(
+            source = LinkSource.MahjongSoul,
+            uuid = "250130-56d469f5-c213-4b1c-8fe1-4f7b006ab82e",
+            encodedAccountId = "938523791",
+            amaeRecordId = null,
+            modeId = null,
+            officialUrl = "https://mahjongsoul.game.yo-star.com/?paipu=250130-56d469f5-c213-4b1c-8fe1-4f7b006ab82e_a938523791",
+            fetchStatus = PaipuFetchStatus.Ready,
+            message = "ready",
+        )
+
+        val download = FinalPaipuDownloader().prepareDownload(detail)
+
+        assertEquals(FinalPaipuDownloadStatus.RequiresOfficialProtocol, download.status)
+        assertEquals(detail.uuid, download.request?.uuid)
+        assertTrue(download.request?.requiresWebSocket == true)
+        assertTrue(download.request?.requiresOAuth == true)
+        assertTrue(download.request?.requiresProtobuf == true)
+    }
+
+    @Test
+    fun finalParser_groupsDecodedEventsIntoRounds() {
+        val head = PaipuHead(
+            modeId = "16",
+            startTime = 1,
+            endTime = 2,
+            players = listOf(PaipuPlayer(1, "玩家A", 0, 25000)),
+        )
+
+        val paipu = FinalPaipuParser().fromDecodedEvents(
+            uuid = "250130-56d469f5-c213-4b1c-8fe1-4f7b006ab82e",
+            officialUrl = "https://mahjongsoul.game.yo-star.com/",
+            head = head,
+            decodedEvents = listOf(
+                DecodedPaipuEvent(PaipuEventType.NewRound, null, null),
+                DecodedPaipuEvent(PaipuEventType.DealTile, 0, "5m"),
+                DecodedPaipuEvent(PaipuEventType.DiscardTile, 0, "5m"),
+                DecodedPaipuEvent(PaipuEventType.NewRound, null, null),
+                DecodedPaipuEvent(PaipuEventType.DealTile, 1, "7p"),
+            ),
+        )
+
+        assertEquals(2, paipu.rounds.size)
+        assertEquals(3, paipu.rounds[0].events.size)
+        assertEquals(2, paipu.rounds[1].events.size)
+    }
+
+    @Test
     fun parseUnknownLink_reportsUnsupported() {
         val parsed = PaipuLinkParser.parse("https://example.com/not-a-paipu")
 
