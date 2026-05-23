@@ -6,7 +6,7 @@
 
 ## 当前主线项目
 
-- **Android 端雀魂 AI 复盘教练**：从结构化牌谱样例中定位关键决策点，在移动端输出可解释、可训练的复盘报告。
+- **Android 端雀魂 AI 复盘教练**：优先解析雀魂/牌谱屋链接，识别牌谱来源、UUID 和视角信息，并用中文样例预览可解释、可训练的复盘报告。
 
 本仓库当前 Python Demo 保留为策略评估原型和报告结构验证层，不代表最终产品形态。Android 工程是第一阶段优先实现形态；规范文档用于支持未来迁移到 Web、桌面、iOS 或服务端。
 
@@ -36,9 +36,9 @@ samples/
   mahjong_round.json           # 雀魂复盘样例输入
   san11_state.json             # 三国志 11 局势样例输入
 app/
-  src/main/assets/                # Android 内置中文样例牌谱
+  src/main/assets/                # Android 内置中文预览样例
   src/main/java/com/example/mahjongcoach/
-    data/                      # 样例牌谱读取与解析
+    data/                      # 链接识别、样例读取与解析
     domain/                    # 平台无关领域模型
     evaluator/                 # 雀魂复盘评估器
     ui/                        # Compose UI 状态与样例切换

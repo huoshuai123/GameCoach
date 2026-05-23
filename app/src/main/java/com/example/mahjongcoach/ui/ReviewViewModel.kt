@@ -2,6 +2,7 @@ package com.example.mahjongcoach.ui
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import com.example.mahjongcoach.data.PaipuLinkParser
 import com.example.mahjongcoach.data.SampleRoundRepository
 import com.example.mahjongcoach.domain.DecisionPoint
 import com.example.mahjongcoach.evaluator.MahjongRoundEvaluator
@@ -17,11 +18,25 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
     val state: StateFlow<ReviewUiState> = mutableState.asStateFlow()
 
     init {
-        showSampleList()
+        showLinkEntry()
     }
 
-    fun showSampleList() {
-        mutableState.value = ReviewUiState.SampleList(repository.listSamples())
+    fun showLinkEntry() {
+        mutableState.value = ReviewUiState.LinkEntry(repository.listSamples())
+    }
+
+    fun updateLinkInput(input: String) {
+        val current = mutableState.value
+        mutableState.value = ReviewUiState.LinkEntry(
+            samples = repository.listSamples(),
+            input = input,
+            parsedLink = (current as? ReviewUiState.LinkEntry)?.parsedLink,
+        )
+    }
+
+    fun parseCurrentLink() {
+        val current = mutableState.value as? ReviewUiState.LinkEntry ?: return
+        mutableState.value = current.copy(parsedLink = PaipuLinkParser.parse(current.input))
     }
 
     fun loadSampleRound(id: String = repository.listSamples().first().id) {

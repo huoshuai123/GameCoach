@@ -26,6 +26,7 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
+import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -35,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.mahjongcoach.data.ParsedPaipuLink
 import com.example.mahjongcoach.data.SampleRound
 import com.example.mahjongcoach.domain.DecisionPoint
 import com.example.mahjongcoach.domain.EvaluationReport
@@ -72,8 +74,12 @@ fun MahjongCoachApp(viewModel: ReviewViewModel = viewModel()) {
             when (val current = state) {
                 ReviewUiState.Loading -> LoadingScreen()
                 is ReviewUiState.Error -> ErrorScreen(current.message) { viewModel.loadSampleRound() }
-                is ReviewUiState.SampleList -> SampleListScreen(
+                is ReviewUiState.LinkEntry -> LinkEntryScreen(
                     samples = current.samples,
+                    input = current.input,
+                    parsedLink = current.parsedLink,
+                    onInputChanged = viewModel::updateLinkInput,
+                    onParseClick = viewModel::parseCurrentLink,
                     onSampleSelected = viewModel::loadSampleRound,
                 )
                 is ReviewUiState.Ready -> ReviewScreen(
@@ -83,7 +89,7 @@ fun MahjongCoachApp(viewModel: ReviewViewModel = viewModel()) {
                     selectedDecision = current.selectedDecision,
                     onDecisionSelected = viewModel::selectDecision,
                     onSampleSelected = viewModel::loadSampleRound,
-                    onBackToSamples = viewModel::showSampleList,
+                    onBackToLinkEntry = viewModel::showLinkEntry,
                 )
             }
         }
@@ -104,8 +110,12 @@ private fun LoadingScreen() {
 }
 
 @Composable
-private fun SampleListScreen(
+private fun LinkEntryScreen(
     samples: List<SampleRound>,
+    input: String,
+    parsedLink: ParsedPaipuLink?,
+    onInputChanged: (String) -> Unit,
+    onParseClick: () -> Unit,
     onSampleSelected: (String) -> Unit,
 ) {
     LazyColumn(
@@ -118,7 +128,22 @@ private fun SampleListScreen(
             Spacer(Modifier.height(18.dp))
             Text("雀魂复盘教练", style = MaterialTheme.typography.h4, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(6.dp))
-            Text("选择一局中文样例牌谱，查看 AI 教练如何抓关键决策点。", color = Color(0xFF5A625F))
+            Text("粘贴雀魂或牌谱屋链接，先识别牌谱信息，再进入复盘流程。", color = Color(0xFF5A625F))
+        }
+
+        item {
+            LinkInputCard(
+                input = input,
+                parsedLink = parsedLink,
+                onInputChanged = onInputChanged,
+                onParseClick = onParseClick,
+                onPreviewClick = { samples.firstOrNull()?.let { onSampleSelected(it.id) } },
+            )
+        }
+
+        item {
+            SectionTitle("中文样例预览")
+            Text("当前版本不做账号登录和第三方完整牌谱下载，可先用样例查看最终报告样式。", color = Color(0xFF5A625F))
         }
 
         items(samples) { sample ->
@@ -128,6 +153,63 @@ private fun SampleListScreen(
         item {
             Spacer(Modifier.height(16.dp))
         }
+    }
+}
+
+@Composable
+private fun LinkInputCard(
+    input: String,
+    parsedLink: ParsedPaipuLink?,
+    onInputChanged: (String) -> Unit,
+    onParseClick: () -> Unit,
+    onPreviewClick: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        elevation = 2.dp,
+        backgroundColor = Color(0xFFFFFCF7),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("牌谱链接", style = MaterialTheme.typography.h6, fontWeight = FontWeight.Bold)
+            TextField(
+                value = input,
+                onValueChange = onInputChanged,
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("粘贴 mahjongsoul.game.yo-star.com 或 amae-koromo.sapk.ch 链接") },
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = onParseClick) {
+                    Text("解析链接")
+                }
+                Button(onClick = onPreviewClick) {
+                    Text("预览报告")
+                }
+            }
+            parsedLink?.let {
+                LinkResultPanel(it)
+            }
+        }
+    }
+}
+
+@Composable
+private fun LinkResultPanel(parsedLink: ParsedPaipuLink) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFEAF3EF), RoundedCornerShape(8.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text("识别结果", fontWeight = FontWeight.Bold, color = Color(0xFF184D44))
+        DetailLine("来源", parsedLink.source.label)
+        parsedLink.uuid?.let { DetailLine("牌谱 UUID", it) }
+        parsedLink.encodedAccountId?.let { DetailLine("视角标识", it) }
+        parsedLink.amaeRecordId?.let { DetailLine("牌谱屋记录", it) }
+        parsedLink.modeId?.let { DetailLine("模式 ID", it) }
+        DetailLine("状态", if (parsedLink.canStartReview) "已识别，等待完整牌谱数据接入" else "暂不支持")
+        Text(parsedLink.message, color = Color(0xFF5A625F))
     }
 }
 
@@ -177,7 +259,7 @@ private fun ReviewScreen(
     selectedDecision: DecisionPoint?,
     onDecisionSelected: (DecisionPoint) -> Unit,
     onSampleSelected: (String) -> Unit,
-    onBackToSamples: () -> Unit,
+    onBackToLinkEntry: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier
@@ -191,8 +273,8 @@ private fun ReviewScreen(
             Text(selectedSample.title, color = Color(0xFF5A625F))
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onBackToSamples) {
-                    Text("返回样例")
+                Button(onClick = onBackToLinkEntry) {
+                    Text("返回链接")
                 }
                 samples.firstOrNull { it.id != selectedSample.id }?.let { next ->
                     Button(onClick = { onSampleSelected(next.id) }) {
