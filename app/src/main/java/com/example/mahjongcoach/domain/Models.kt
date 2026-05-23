@@ -46,15 +46,15 @@ data class TrainingFocus(
 )
 
 enum class Priority(val label: String) {
-    High("High"),
-    Medium("Medium"),
-    Low("Low"),
+    High("高优先级"),
+    Medium("中优先级"),
+    Low("低优先级"),
 }
 
-enum class ProblemType(val label: String) {
-    Efficiency("Efficiency"),
-    Risk("Risk"),
-    AttackDefense("Attack / defense"),
+enum class ProblemType(val label: String, val schemaValue: String) {
+    Efficiency("牌效率", "efficiency"),
+    Risk("危险度", "risk"),
+    AttackDefense("攻守判断", "attack_defense"),
 }
 
 interface GameAdapter<Input> {

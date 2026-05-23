@@ -11,6 +11,7 @@ class MahjongSoulAdapter : GameAdapter<MahjongRound> {
             title = input.title,
             context = mapOf(
                 "source" to input.source,
+                "focus" to input.focus,
                 "turn_count" to input.turns.size.toString(),
             ),
         )

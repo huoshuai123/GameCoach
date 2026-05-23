@@ -1,0 +1,57 @@
+{
+  "id": "push-fold-east-4",
+  "title": "东四局：攻守切换复盘",
+  "source": "structured-demo",
+  "description": "速度、分数和危险度同时变化，适合练习什么时候继续攻、什么时候收手。",
+  "focus": "攻守判断",
+  "turns": [
+    {
+      "turn": 4,
+      "chosen_discard": "2m",
+      "best_discard": "8p",
+      "safest_discard": "8p",
+      "ukeire_chosen": 15,
+      "ukeire_best": 25,
+      "chosen_danger": 0.12,
+      "best_danger": 0.09,
+      "opponent_pressure": 0.10,
+      "shanten_after": 2
+    },
+    {
+      "turn": 8,
+      "chosen_discard": "4s",
+      "best_discard": "9m",
+      "safest_discard": "9m",
+      "ukeire_chosen": 19,
+      "ukeire_best": 24,
+      "chosen_danger": 0.34,
+      "best_danger": 0.16,
+      "opponent_pressure": 0.55,
+      "shanten_after": 1
+    },
+    {
+      "turn": 11,
+      "chosen_discard": "7p",
+      "best_discard": "1s",
+      "safest_discard": "1s",
+      "ukeire_chosen": 18,
+      "ukeire_best": 18,
+      "chosen_danger": 0.64,
+      "best_danger": 0.20,
+      "opponent_pressure": 0.86,
+      "shanten_after": 1
+    },
+    {
+      "turn": 16,
+      "chosen_discard": "5m",
+      "best_discard": "5m",
+      "safest_discard": "5m",
+      "ukeire_chosen": 9,
+      "ukeire_best": 9,
+      "chosen_danger": 0.25,
+      "best_danger": 0.25,
+      "opponent_pressure": 0.30,
+      "shanten_after": 0
+    }
+  ]
+}

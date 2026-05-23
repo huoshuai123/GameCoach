@@ -20,14 +20,14 @@ class MahjongRoundEvaluator(
                 if (efficiencyLoss >= 4.0) {
                     add(
                         DecisionPoint(
-                            label = "Turn ${turn.turn}: tile efficiency loss",
+                            label = "第 ${turn.turn} 巡：牌效率损失",
                             turn = turn.turn,
                             severity = (4 + efficiencyLoss / 2 + dangerGap).roundToInt().coerceAtMost(10),
                             problemType = ProblemType.Efficiency,
-                            currentChoice = "Discarded ${turn.chosenDiscard}",
-                            recommendedChoice = "Prefer ${turn.bestDiscard}",
-                            reason = "The chosen discard loses ${efficiencyLoss.roundToInt()} effective tiles compared with the best candidate, slowing the hand before tenpai.",
-                            trainingTip = "Check shanten and ukeire before choosing a safe-looking discard.",
+                            currentChoice = "打出 ${turn.chosenDiscard}",
+                            recommendedChoice = "优先考虑 ${turn.bestDiscard}",
+                            reason = "这一手的主要问题是速度变慢。和推荐选择相比，当前弃牌少了约 ${efficiencyLoss.roundToInt()} 张有效牌，听牌前的手牌推进会被明显拖住。",
+                            trainingTip = "下一局遇到相似局面时，先数向听和有效牌，再决定是否为了看起来安全而牺牲速度。",
                         )
                     )
                 }
@@ -35,14 +35,14 @@ class MahjongRoundEvaluator(
                 if (pushRisk >= 0.45 && turn.shantenAfter >= 1.0) {
                     add(
                         DecisionPoint(
-                            label = "Turn ${turn.turn}: over-push risk",
+                            label = "第 ${turn.turn} 巡：高压下继续推进",
                             turn = turn.turn,
                             severity = (5 + pushRisk * 6 + turn.shantenAfter).roundToInt().coerceAtMost(10),
                             problemType = ProblemType.AttackDefense,
-                            currentChoice = "Discarded ${turn.chosenDiscard}",
-                            recommendedChoice = "Consider ${turn.safestDiscard}",
-                            reason = "Opponent pressure is high while the hand is not ready. The chosen tile carries too much deal-in risk for the current hand speed.",
-                            trainingTip = "Practice push/fold thresholds when one shanten or worse under riichi pressure.",
+                            currentChoice = "打出 ${turn.chosenDiscard}",
+                            recommendedChoice = "考虑转打 ${turn.safestDiscard}",
+                            reason = "这一手更像是该收手的节点。对手压力已经很高，而自己仍未听牌，当前弃牌承担的放铳风险和手牌速度不匹配。",
+                            trainingTip = "练习“一向听或更慢时遇到强压力”的押引阈值：没有足够打点或安全改良时，优先保命。",
                         )
                     )
                 }
@@ -50,14 +50,14 @@ class MahjongRoundEvaluator(
                 if (dangerGap >= 0.35 && efficiencyLoss <= 2.0) {
                     add(
                         DecisionPoint(
-                            label = "Turn ${turn.turn}: unnecessary danger",
+                            label = "第 ${turn.turn} 巡：没有必要的危险牌",
                             turn = turn.turn,
                             severity = (5 + dangerGap * 8).roundToInt().coerceAtMost(10),
                             problemType = ProblemType.Risk,
-                            currentChoice = "Discarded ${turn.chosenDiscard}",
-                            recommendedChoice = "Prefer safer ${turn.bestDiscard}",
-                            reason = "The selected tile is much more dangerous without buying meaningful speed or value.",
-                            trainingTip = "When candidates have similar efficiency, downgrade clearly dangerous tiles.",
+                            currentChoice = "打出 ${turn.chosenDiscard}",
+                            recommendedChoice = "优先选择更安全的 ${turn.bestDiscard}",
+                            reason = "这一手没有用风险换到足够收益。两个候选的效率差距很小，但当前选择明显更危险。",
+                            trainingTip = "当两个候选牌效率接近时，把危险度作为第一排序条件，主动降级明显危险的牌。",
                         )
                     )
                 }
@@ -67,26 +67,26 @@ class MahjongRoundEvaluator(
             .take(5)
 
         val metrics = listOf(
-            Metric("Average ukeire loss", averageUkeireLoss(round), "Lower is better."),
-            Metric("Average chosen danger", average(round) { it.chosenDanger }, "Estimated deal-in risk proxy."),
-            Metric("Pressure exposure", average(round) { it.chosenDanger * it.opponentPressure }, "Risk taken under opponent pressure."),
+            Metric("平均有效牌损失", averageUkeireLoss(round), "越低越好，用来观察弃牌是否拖慢手牌速度。"),
+            Metric("平均弃牌危险度", average(round) { it.chosenDanger }, "当前选择的放铳风险估计值。"),
+            Metric("压力暴露", average(round) { it.chosenDanger * it.opponentPressure }, "在对手高压下仍承担的风险。"),
         )
 
         return EvaluationReport(
             situation = adapter.toSituation(round),
-            summary = "This report focuses on tile efficiency, danger, and push/fold discipline. It found ${decisions.size} review-worthy decision point(s).",
+            summary = "本局重点看${round.focus}、危险度和攻守切换。系统从结构化牌谱中找到了 ${decisions.size} 个值得复盘的关键决策点。",
             metrics = metrics,
             decisionPoints = decisions,
             trainingFocus = decisions.firstOrNull()?.let {
                 TrainingFocus(
                     theme = it.problemType.label,
                     nextAction = it.trainingTip,
-                    evidence = "${it.label} has ${it.priority.label.lowercase()} priority.",
+                    evidence = "${it.label} 被评为${it.priority.label}，建议优先复盘。",
                 )
             } ?: TrainingFocus(
-                theme = "Keep reviewing decision quality",
-                nextAction = "Compare each discard against speed, danger, and hand readiness.",
-                evidence = "No high-priority decision point was found in this sample.",
+                theme = "保持决策质量",
+                nextAction = "继续用速度、危险度和听牌进度三件事检查每一次弃牌。",
+                evidence = "这局样例没有发现高优先级决策点。",
             ),
         )
     }

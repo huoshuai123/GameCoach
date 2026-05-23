@@ -17,15 +17,24 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
     val state: StateFlow<ReviewUiState> = mutableState.asStateFlow()
 
     init {
-        loadSampleRound()
+        showSampleList()
     }
 
-    fun loadSampleRound() {
+    fun showSampleList() {
+        mutableState.value = ReviewUiState.SampleList(repository.listSamples())
+    }
+
+    fun loadSampleRound(id: String = repository.listSamples().first().id) {
         mutableState.value = try {
-            val report = evaluator.evaluate(repository.loadSampleRound())
-            ReviewUiState.Ready(report)
+            val sample = repository.listSamples().first { it.id == id }
+            val report = evaluator.evaluate(repository.loadSampleRound(id))
+            ReviewUiState.Ready(
+                samples = repository.listSamples(),
+                selectedSample = sample,
+                report = report,
+            )
         } catch (error: Exception) {
-            ReviewUiState.Error(error.message ?: "Unable to load sample round.")
+            ReviewUiState.Error(error.message ?: "无法读取样例牌谱。")
         }
     }
 

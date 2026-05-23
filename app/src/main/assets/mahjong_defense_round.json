@@ -1,0 +1,57 @@
+{
+  "id": "defense-south-1",
+  "title": "南一局：高压防守复盘",
+  "source": "structured-demo",
+  "description": "对手立直后仍选择危险牌推进，适合训练一向听以下的弃和判断。",
+  "focus": "危险度",
+  "turns": [
+    {
+      "turn": 6,
+      "chosen_discard": "8m",
+      "best_discard": "1z",
+      "safest_discard": "1z",
+      "ukeire_chosen": 20,
+      "ukeire_best": 22,
+      "chosen_danger": 0.28,
+      "best_danger": 0.08,
+      "opponent_pressure": 0.35,
+      "shanten_after": 2
+    },
+    {
+      "turn": 10,
+      "chosen_discard": "5p",
+      "best_discard": "9s",
+      "safest_discard": "9s",
+      "ukeire_chosen": 16,
+      "ukeire_best": 17,
+      "chosen_danger": 0.70,
+      "best_danger": 0.14,
+      "opponent_pressure": 0.92,
+      "shanten_after": 1
+    },
+    {
+      "turn": 12,
+      "chosen_discard": "6s",
+      "best_discard": "2z",
+      "safest_discard": "2z",
+      "ukeire_chosen": 14,
+      "ukeire_best": 15,
+      "chosen_danger": 0.66,
+      "best_danger": 0.10,
+      "opponent_pressure": 0.88,
+      "shanten_after": 1
+    },
+    {
+      "turn": 14,
+      "chosen_discard": "3p",
+      "best_discard": "3p",
+      "safest_discard": "3p",
+      "ukeire_chosen": 7,
+      "ukeire_best": 7,
+      "chosen_danger": 0.18,
+      "best_danger": 0.18,
+      "opponent_pressure": 0.40,
+      "shanten_after": 0
+    }
+  ]
+}

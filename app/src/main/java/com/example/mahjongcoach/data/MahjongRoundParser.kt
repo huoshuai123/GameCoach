@@ -26,8 +26,11 @@ object MahjongRoundParser {
             }
         }
         return MahjongRound(
+            id = root.optString("id", "sample"),
             title = root.optString("title", "Mahjong Soul Review Demo"),
             source = root.optString("source", "structured-demo"),
+            description = root.optString("description", "结构化样例牌谱"),
+            focus = root.optString("focus", "综合复盘"),
             turns = parsedTurns,
         )
     }

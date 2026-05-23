@@ -1,6 +1,9 @@
 {
-  "title": "Mahjong Soul Review Demo - East 2",
+  "id": "efficiency-east-2",
+  "title": "东二局：效率损失复盘",
   "source": "structured-demo",
+  "description": "中盘前的弃牌选择拉低进张，适合检查向听数和有效牌意识。",
+  "focus": "牌效率",
   "turns": [
     {
       "turn": 5,

@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.mahjongcoach.data.SampleRound
 import com.example.mahjongcoach.domain.DecisionPoint
 import com.example.mahjongcoach.domain.EvaluationReport
 import com.example.mahjongcoach.domain.Metric
@@ -70,11 +71,19 @@ fun MahjongCoachApp(viewModel: ReviewViewModel = viewModel()) {
         ) {
             when (val current = state) {
                 ReviewUiState.Loading -> LoadingScreen()
-                is ReviewUiState.Error -> ErrorScreen(current.message, viewModel::loadSampleRound)
+                is ReviewUiState.Error -> ErrorScreen(current.message) { viewModel.loadSampleRound() }
+                is ReviewUiState.SampleList -> SampleListScreen(
+                    samples = current.samples,
+                    onSampleSelected = viewModel::loadSampleRound,
+                )
                 is ReviewUiState.Ready -> ReviewScreen(
+                    samples = current.samples,
+                    selectedSample = current.selectedSample,
                     report = current.report,
                     selectedDecision = current.selectedDecision,
                     onDecisionSelected = viewModel::selectDecision,
+                    onSampleSelected = viewModel::loadSampleRound,
+                    onBackToSamples = viewModel::showSampleList,
                 )
             }
         }
@@ -91,6 +100,54 @@ private fun LoadingScreen() {
         CircularProgressIndicator()
         Spacer(Modifier.height(16.dp))
         Text("正在读取样例牌谱")
+    }
+}
+
+@Composable
+private fun SampleListScreen(
+    samples: List<SampleRound>,
+    onSampleSelected: (String) -> Unit,
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        item {
+            Spacer(Modifier.height(18.dp))
+            Text("雀魂复盘教练", style = MaterialTheme.typography.h4, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(6.dp))
+            Text("选择一局中文样例牌谱，查看 AI 教练如何抓关键决策点。", color = Color(0xFF5A625F))
+        }
+
+        items(samples) { sample ->
+            SampleCard(sample = sample, onClick = { onSampleSelected(sample.id) })
+        }
+
+        item {
+            Spacer(Modifier.height(16.dp))
+        }
+    }
+}
+
+@Composable
+private fun SampleCard(sample: SampleRound, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(8.dp),
+        elevation = 2.dp,
+        backgroundColor = Color(0xFFFFFCF7),
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(sample.title, style = MaterialTheme.typography.h6, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(6.dp))
+            Text(sample.description, color = Color(0xFF5A625F))
+            Spacer(Modifier.height(10.dp))
+            Text("训练主题：${sample.focus}", color = Color(0xFF22665A), fontWeight = FontWeight.Bold)
+        }
     }
 }
 
@@ -114,9 +171,13 @@ private fun ErrorScreen(message: String, onRetry: () -> Unit) {
 
 @Composable
 private fun ReviewScreen(
+    samples: List<SampleRound>,
+    selectedSample: SampleRound,
     report: EvaluationReport,
     selectedDecision: DecisionPoint?,
     onDecisionSelected: (DecisionPoint) -> Unit,
+    onSampleSelected: (String) -> Unit,
+    onBackToSamples: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier
@@ -127,7 +188,18 @@ private fun ReviewScreen(
         item {
             Spacer(Modifier.height(12.dp))
             Text("雀魂复盘教练", style = MaterialTheme.typography.h4, fontWeight = FontWeight.Bold)
-            Text(report.situation.title, color = Color(0xFF5A625F))
+            Text(selectedSample.title, color = Color(0xFF5A625F))
+            Spacer(Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = onBackToSamples) {
+                    Text("返回样例")
+                }
+                samples.firstOrNull { it.id != selectedSample.id }?.let { next ->
+                    Button(onClick = { onSampleSelected(next.id) }) {
+                        Text("切换样例")
+                    }
+                }
+            }
         }
 
         item {

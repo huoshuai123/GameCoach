@@ -2,6 +2,7 @@ package com.example.mahjongcoach.evaluator
 
 import com.example.mahjongcoach.data.MahjongRound
 import com.example.mahjongcoach.data.MahjongTurn
+import com.example.mahjongcoach.domain.ReportSchemaExporter
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -17,10 +18,34 @@ class MahjongRoundEvaluatorTest {
         assertTrue(report.decisionPoints.all { it.trainingTip.isNotBlank() })
     }
 
+    @Test
+    fun exportedJson_matchesReviewReportSchemaShape() {
+        val report = MahjongRoundEvaluator().evaluate(sampleRound())
+        val schema = ReportSchemaExporter.toMap(report)
+        val decisions = schema["decision_points"] as List<*>
+        val decision = decisions.first() as Map<*, *>
+
+        assertTrue(schema.containsKey("situation"))
+        assertTrue(schema.containsKey("summary"))
+        assertTrue(schema.containsKey("metrics"))
+        assertTrue(schema.containsKey("decision_points"))
+        assertTrue(schema.containsKey("training_focus"))
+        assertTrue(decision.containsKey("turn"))
+        assertTrue(decision.containsKey("choice"))
+        assertTrue(decision.containsKey("recommendation"))
+        assertTrue(decision.containsKey("problem_type"))
+        assertTrue(decision.containsKey("reason"))
+        assertTrue(decision.containsKey("training_tip"))
+        assertTrue(decision.containsKey("priority"))
+    }
+
     private fun sampleRound(): MahjongRound {
         return MahjongRound(
-            title = "Mahjong Soul Review Demo - East 2",
+            id = "unit-test",
+            title = "东二局：效率损失复盘",
             source = "unit-test",
+            description = "unit test sample",
+            focus = "牌效率",
             turns = listOf(
                 MahjongTurn(5, "5m", "9p", "9p", 18.0, 26.0, 0.18, 0.10, 0.15, 2.0),
                 MahjongTurn(9, "7s", "1m", "1m", 22.0, 24.0, 0.62, 0.18, 0.90, 1.0),
