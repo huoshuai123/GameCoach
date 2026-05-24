@@ -18,6 +18,16 @@ class PaipuLinkParserTest {
     }
 
     @Test
+    fun parseMahjongSoulLink_decodesViewAccountId() {
+        val parsed = PaipuLinkParser.parse(
+            "https://game.maj-soul.com/1/?paipu=260522-2793b6c3-992e-424b-9205-11a121e9ac00_a64445483"
+        )
+
+        assertEquals("64445483", parsed.encodedAccountId)
+        assertEquals(16329130L, parsed.viewAccountId)
+    }
+
+    @Test
     fun parseAmaeKoromoMaskedLink_extractsRecordMetadata() {
         val parsed = PaipuLinkParser.parse(
             "https://5-data.amae-koromo.com/api/v2/pl4/view_game/zh/16/abc123/938523791"
@@ -55,11 +65,12 @@ class PaipuLinkParserTest {
     }
 
     @Test
-    fun finalDownloader_preparesOfficialProtocolRequest() {
+    fun finalDownloader_preparesPublicRecordRequest() {
         val detail = PaipuDetail(
             source = LinkSource.MahjongSoul,
             uuid = "250130-56d469f5-c213-4b1c-8fe1-4f7b006ab82e",
             encodedAccountId = "938523791",
+            viewAccountId = PaipuLinkParser.decodeAccountId("938523791"),
             amaeRecordId = null,
             modeId = null,
             officialUrl = "https://mahjongsoul.game.yo-star.com/?paipu=250130-56d469f5-c213-4b1c-8fe1-4f7b006ab82e_a938523791",
@@ -69,11 +80,106 @@ class PaipuLinkParserTest {
 
         val download = FinalPaipuDownloader().prepareDownload(detail)
 
-        assertEquals(FinalPaipuDownloadStatus.RequiresOfficialProtocol, download.status)
+        assertEquals(FinalPaipuDownloadStatus.ReadyToFetchPublicRecord, download.status)
         assertEquals(detail.uuid, download.request?.uuid)
-        assertTrue(download.request?.requiresWebSocket == true)
-        assertTrue(download.request?.requiresOAuth == true)
-        assertTrue(download.request?.requiresProtobuf == true)
+        assertEquals(
+            "https://maj.gg/game/250130-56d469f5-c213-4b1c-8fe1-4f7b006ab82e",
+            download.request?.majGgUrl,
+        )
+        assertEquals(detail.encodedAccountId, download.request?.encodedAccountId)
+    }
+
+    @Test
+    fun majGgFetcher_extractsFreshStateAndMapsFinalPaipu() {
+        val html = """
+            <html>
+              <body>
+                <script id="__FRSH_STATE" type="application/json">
+                  {
+                    "data": {
+                      "game": {
+                        "accounts": [
+                          {"accountId": 100, "nickname": "上家", "seat": 0, "score": 25000},
+                          {"accountId": 16329130, "nickname": "南风快乐岛", "seat": 2, "score": 26000}
+                        ],
+                        "Rounds": [
+                          {
+                            "Tile": [
+                              {"TileType": "NewRound"},
+                              {"TileType": "Draw", "seat": 2, "tile": "9s"},
+                              {"TileType": "Discard", "seat": 2, "tile": "9s", "moqie": true},
+                              {"TileType": "Call", "seat": 0, "tiles": ["2m", "3m", "4m"]}
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                </script>
+              </body>
+            </html>
+        """.trimIndent()
+
+        val request = PublicPaipuFetchRequest(
+            uuid = "260522-2793b6c3-992e-424b-9205-11a121e9ac00",
+            officialUrl = "https://game.maj-soul.com/1/?paipu=260522-2793b6c3-992e-424b-9205-11a121e9ac00_a64445483",
+            majGgUrl = "https://maj.gg/game/260522-2793b6c3-992e-424b-9205-11a121e9ac00",
+            encodedAccountId = "64445483",
+            viewAccountId = 16329130L,
+        )
+
+        val paipu = MajGgPaipuFetcher().parseHtml(request, html)
+
+        assertEquals("260522-2793b6c3-992e-424b-9205-11a121e9ac00", paipu.uuid)
+        assertEquals(2, paipu.head.viewSeat)
+        assertEquals("南风快乐岛", paipu.head.viewPlayer?.nickname)
+        assertEquals(1, paipu.rounds.size)
+        assertEquals(PaipuEventType.DealTile, paipu.rounds[0].events[1].type)
+        assertEquals(PaipuEventType.DiscardTile, paipu.rounds[0].events[2].type)
+        assertEquals("true", paipu.rounds[0].events[2].payload["moqie"])
+    }
+
+    @Test(expected = IllegalStateException::class)
+    fun majGgFetcher_failsWhenViewAccountIsMissing() {
+        val html = """
+            <script id="__FRSH_STATE" type="application/json">
+              {"data":{"game":{"accounts":[{"accountId":100,"nickname":"上家","seat":0}],"Rounds":[{"Tile":[]}]}}}
+            </script>
+        """.trimIndent()
+
+        MajGgPaipuFetcher().parseHtml(
+            PublicPaipuFetchRequest(
+                uuid = "260522-2793b6c3-992e-424b-9205-11a121e9ac00",
+                officialUrl = "https://game.maj-soul.com/1/?paipu=260522-2793b6c3-992e-424b-9205-11a121e9ac00_a64445483",
+                majGgUrl = "https://maj.gg/game/260522-2793b6c3-992e-424b-9205-11a121e9ac00",
+                encodedAccountId = "64445483",
+                viewAccountId = 16329130L,
+            ),
+            html,
+        )
+    }
+
+    @Test
+    fun majGgFetcher_extractsAssignedFreshStateWithoutRegexBraceParsing() {
+        val html = """
+            <script>
+              window.__FRSH_STATE = {"data":{"game":{"accounts":[{"accountId":16329130,"nickname":"南风快乐岛","seat":2}],"Rounds":[{"Tile":[{"TileType":"Draw","seat":2,"tile":"1m"}]}]}}};
+            </script>
+        """.trimIndent()
+
+        val paipu = MajGgPaipuFetcher().parseHtml(
+            PublicPaipuFetchRequest(
+                uuid = "260522-2793b6c3-992e-424b-9205-11a121e9ac00",
+                officialUrl = "https://game.maj-soul.com/1/?paipu=260522-2793b6c3-992e-424b-9205-11a121e9ac00_a64445483",
+                majGgUrl = "https://maj.gg/game/260522-2793b6c3-992e-424b-9205-11a121e9ac00",
+                encodedAccountId = "64445483",
+                viewAccountId = 16329130L,
+            ),
+            html,
+        )
+
+        assertEquals(2, paipu.head.viewSeat)
+        assertEquals(PaipuEventType.DealTile, paipu.rounds[0].events[1].type)
     }
 
     @Test

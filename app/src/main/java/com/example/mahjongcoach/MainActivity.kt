@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mahjongcoach.data.FinalPaipuDownload
+import com.example.mahjongcoach.data.FinalPaipuDownloadStatus
 import com.example.mahjongcoach.data.PaipuDetail
 import com.example.mahjongcoach.data.ParsedPaipuLink
 import com.example.mahjongcoach.data.SampleRound
@@ -84,9 +85,7 @@ fun MahjongCoachApp(viewModel: ReviewViewModel = viewModel()) {
                     finalPaipuDownload = current.finalPaipuDownload,
                     isDownloading = current.isDownloading,
                     onInputChanged = viewModel::updateLinkInput,
-                    onParseClick = viewModel::parseCurrentLink,
-                    onDownloadClick = viewModel::downloadPaipuDetail,
-                    onFinalDownloadClick = viewModel::prepareFinalPaipuDownload,
+                    onImportClick = viewModel::importPublicPaipu,
                     onSampleSelected = viewModel::loadSampleRound,
                 )
                 is ReviewUiState.Ready -> ReviewScreen(
@@ -125,9 +124,7 @@ private fun LinkEntryScreen(
     finalPaipuDownload: FinalPaipuDownload?,
     isDownloading: Boolean,
     onInputChanged: (String) -> Unit,
-    onParseClick: () -> Unit,
-    onDownloadClick: () -> Unit,
-    onFinalDownloadClick: () -> Unit,
+    onImportClick: () -> Unit,
     onSampleSelected: (String) -> Unit,
 ) {
     LazyColumn(
@@ -140,7 +137,7 @@ private fun LinkEntryScreen(
             Spacer(Modifier.height(18.dp))
             Text("雀魂复盘教练", style = MaterialTheme.typography.h4, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(6.dp))
-            Text("粘贴雀魂或牌谱屋链接，先识别牌谱信息，再进入复盘流程。", color = Color(0xFF5A625F))
+            Text("粘贴公开雀魂牌谱链接，一次导入后进入复盘流程。", color = Color(0xFF5A625F))
         }
 
         item {
@@ -151,16 +148,13 @@ private fun LinkEntryScreen(
                 finalPaipuDownload = finalPaipuDownload,
                 isDownloading = isDownloading,
                 onInputChanged = onInputChanged,
-                onParseClick = onParseClick,
-                onDownloadClick = onDownloadClick,
-                onFinalDownloadClick = onFinalDownloadClick,
-                onPreviewClick = { samples.firstOrNull()?.let { onSampleSelected(it.id) } },
+                onImportClick = onImportClick,
             )
         }
 
         item {
             SectionTitle("中文样例预览")
-            Text("当前版本不做账号登录和第三方完整牌谱下载，可先用样例查看最终报告样式。", color = Color(0xFF5A625F))
+            Text("当前版本不做账号登录、凭证保存或历史牌谱同步。", color = Color(0xFF5A625F))
         }
 
         items(samples) { sample ->
@@ -181,10 +175,7 @@ private fun LinkInputCard(
     finalPaipuDownload: FinalPaipuDownload?,
     isDownloading: Boolean,
     onInputChanged: (String) -> Unit,
-    onParseClick: () -> Unit,
-    onDownloadClick: () -> Unit,
-    onFinalDownloadClick: () -> Unit,
-    onPreviewClick: () -> Unit,
+    onImportClick: () -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -192,43 +183,37 @@ private fun LinkInputCard(
         elevation = 2.dp,
         backgroundColor = Color(0xFFFFFCF7),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("牌谱链接", style = MaterialTheme.typography.h6, fontWeight = FontWeight.Bold)
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Text("导入牌谱", style = MaterialTheme.typography.h6, fontWeight = FontWeight.Bold)
             TextField(
                 value = input,
                 onValueChange = onInputChanged,
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("粘贴 mahjongsoul.game.yo-star.com 或 amae-koromo.sapk.ch 链接") },
+                placeholder = { Text("粘贴雀魂公开牌谱链接") },
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onParseClick) {
-                    Text("解析链接")
-                }
-                Button(onClick = onDownloadClick) {
-                    Text(if (isDownloading) "下载中" else "下载详情")
-                }
-                Button(onClick = onPreviewClick) {
-                    Text("预览报告")
-                }
+            Button(
+                onClick = onImportClick,
+                enabled = input.isNotBlank() && !isDownloading,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(if (isDownloading) "正在导入" else "导入牌谱")
             }
-            parsedLink?.let {
-                LinkResultPanel(it)
+            if (isDownloading) {
+                ImportProgressPanel()
             }
-            paipuDetail?.let {
-                PaipuDetailPanel(it)
-                Button(onClick = onFinalDownloadClick) {
-                    Text("下载最终牌谱")
-                }
-            }
-            finalPaipuDownload?.let {
-                FinalPaipuDownloadPanel(it)
+            if (!isDownloading && (parsedLink != null || paipuDetail != null || finalPaipuDownload != null)) {
+                ImportResultPanel(
+                    parsedLink = parsedLink,
+                    detail = paipuDetail,
+                    download = finalPaipuDownload,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun LinkResultPanel(parsedLink: ParsedPaipuLink) {
+private fun ImportProgressPanel() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -236,54 +221,44 @@ private fun LinkResultPanel(parsedLink: ParsedPaipuLink) {
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("识别结果", fontWeight = FontWeight.Bold, color = Color(0xFF184D44))
-        DetailLine("来源", parsedLink.source.label)
-        parsedLink.uuid?.let { DetailLine("牌谱 UUID", it) }
-        parsedLink.encodedAccountId?.let { DetailLine("视角标识", it) }
-        parsedLink.amaeRecordId?.let { DetailLine("牌谱屋记录", it) }
-        parsedLink.modeId?.let { DetailLine("模式 ID", it) }
-        DetailLine("状态", if (parsedLink.canStartReview) "已识别，等待完整牌谱数据接入" else "暂不支持")
-        Text(parsedLink.message, color = Color(0xFF5A625F))
-    }
-}
-
-@Composable
-private fun PaipuDetailPanel(detail: PaipuDetail) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xFFFFF2DD), RoundedCornerShape(8.dp))
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text("牌谱详情", fontWeight = FontWeight.Bold, color = Color(0xFF7A4A12))
-        detail.uuid?.let { DetailLine("牌谱 UUID", it) }
-        detail.officialUrl?.let { DetailLine("官方牌谱链接", it) }
-        detail.encodedAccountId?.let { DetailLine("视角标识", it) }
-        detail.amaeRecordId?.let { DetailLine("牌谱屋记录", it) }
-        detail.modeId?.let { DetailLine("模式 ID", it) }
-        DetailLine("下载状态", detail.fetchStatus.name)
-        Text(detail.message, color = Color(0xFF5A625F))
-    }
-}
-
-@Composable
-private fun FinalPaipuDownloadPanel(download: FinalPaipuDownload) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xFFFFE7E2), RoundedCornerShape(8.dp))
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text("最终牌谱", fontWeight = FontWeight.Bold, color = Color(0xFF8A2F25))
-        DetailLine("状态", download.status.name)
-        download.request?.let {
-            DetailLine("UUID", it.uuid)
-            DetailLine("官方链接", it.officialUrl)
-            DetailLine("协议", "WebSocket + OAuth + protobuf")
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            CircularProgressIndicator()
+            Text("正在准备复盘数据", fontWeight = FontWeight.Bold, color = Color(0xFF184D44))
         }
-        Text(download.message, color = Color(0xFF5A625F))
+        Text("这通常只需要几秒钟。", color = Color(0xFF5A625F))
+    }
+}
+
+@Composable
+private fun ImportResultPanel(
+    parsedLink: ParsedPaipuLink?,
+    detail: PaipuDetail?,
+    download: FinalPaipuDownload?,
+) {
+    val success = download?.status == FinalPaipuDownloadStatus.Fetched
+    val background = if (success) Color(0xFFEAF3EF) else Color(0xFFFFF2DD)
+    val titleColor = if (success) Color(0xFF184D44) else Color(0xFF7A4A12)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(background, RoundedCornerShape(8.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(if (success) "导入完成" else "导入结果", fontWeight = FontWeight.Bold, color = titleColor)
+        parsedLink?.let {
+            DetailLine("来源", it.source.label)
+            it.viewAccountId?.let { account -> DetailLine("视角账号", account.toString()) }
+        }
+        detail?.uuid?.let { DetailLine("牌谱 UUID", it) }
+        download?.request?.let {
+            DetailLine("公开解析源", it.majGgUrl)
+        }
+        download?.paipu?.let {
+            DetailLine("玩家数", it.head.players.size.toString())
+            DetailLine("局数", it.rounds.size.toString())
+        }
+        Text(download?.message ?: detail?.message ?: parsedLink?.message.orEmpty(), color = Color(0xFF5A625F))
     }
 }
 
