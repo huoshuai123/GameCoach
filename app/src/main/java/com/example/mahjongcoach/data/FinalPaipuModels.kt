@@ -12,6 +12,8 @@ data class PaipuHead(
     val startTime: Long?,
     val endTime: Long?,
     val players: List<PaipuPlayer>,
+    val viewSeat: Int? = null,
+    val viewPlayer: PaipuPlayer? = null,
 )
 
 data class PaipuPlayer(
@@ -47,23 +49,21 @@ enum class PaipuEventType(val label: String) {
 
 data class FinalPaipuDownload(
     val status: FinalPaipuDownloadStatus,
-    val request: OfficialPaipuRequest?,
+    val request: PublicPaipuFetchRequest?,
     val paipu: FinalPaipu?,
     val message: String,
 )
 
-data class OfficialPaipuRequest(
+data class PublicPaipuFetchRequest(
     val uuid: String,
     val officialUrl: String,
+    val majGgUrl: String,
     val encodedAccountId: String?,
-    val clientVersionString: String? = null,
-    val requiresWebSocket: Boolean = true,
-    val requiresOAuth: Boolean = true,
-    val requiresProtobuf: Boolean = true,
+    val viewAccountId: Long?,
 )
 
 enum class FinalPaipuDownloadStatus {
-    ReadyToFetch,
-    RequiresOfficialProtocol,
+    ReadyToFetchPublicRecord,
+    Fetched,
     Failed,
 }

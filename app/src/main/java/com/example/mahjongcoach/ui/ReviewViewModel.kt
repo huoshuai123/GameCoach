@@ -3,9 +3,7 @@ package com.example.mahjongcoach.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.mahjongcoach.data.FinalPaipuDownloader
-import com.example.mahjongcoach.data.PaipuDetailDownloader
-import com.example.mahjongcoach.data.PaipuLinkParser
+import com.example.mahjongcoach.data.PaipuImportPipeline
 import com.example.mahjongcoach.data.SampleRoundRepository
 import com.example.mahjongcoach.domain.DecisionPoint
 import com.example.mahjongcoach.evaluator.MahjongRoundEvaluator
@@ -19,8 +17,7 @@ import kotlinx.coroutines.withContext
 class ReviewViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = SampleRoundRepository(application)
     private val evaluator = MahjongRoundEvaluator()
-    private val detailDownloader = PaipuDetailDownloader()
-    private val finalPaipuDownloader = FinalPaipuDownloader()
+    private val importPipeline = PaipuImportPipeline()
     private val mutableState = MutableStateFlow<ReviewUiState>(ReviewUiState.Loading)
 
     val state: StateFlow<ReviewUiState> = mutableState.asStateFlow()
@@ -44,34 +41,26 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         )
     }
 
-    fun parseCurrentLink() {
+    fun importPublicPaipu() {
         val current = mutableState.value as? ReviewUiState.LinkEntry ?: return
         mutableState.value = current.copy(
-            parsedLink = PaipuLinkParser.parse(current.input),
+            isDownloading = true,
             paipuDetail = null,
             finalPaipuDownload = null,
-            isDownloading = false,
         )
-    }
-
-    fun downloadPaipuDetail() {
-        val current = mutableState.value as? ReviewUiState.LinkEntry ?: return
-        val parsed = current.parsedLink ?: PaipuLinkParser.parse(current.input)
-        mutableState.value = current.copy(parsedLink = parsed, isDownloading = true, paipuDetail = null)
 
         viewModelScope.launch {
-            val detail = withContext(Dispatchers.IO) {
-                detailDownloader.download(parsed)
+            val result = withContext(Dispatchers.IO) {
+                importPipeline.import(current.input)
             }
             val latest = mutableState.value as? ReviewUiState.LinkEntry ?: return@launch
-            mutableState.value = latest.copy(isDownloading = false, paipuDetail = detail, finalPaipuDownload = null)
+            mutableState.value = latest.copy(
+                isDownloading = false,
+                parsedLink = result.parsedLink,
+                paipuDetail = result.detail,
+                finalPaipuDownload = result.finalPaipuDownload,
+            )
         }
-    }
-
-    fun prepareFinalPaipuDownload() {
-        val current = mutableState.value as? ReviewUiState.LinkEntry ?: return
-        val detail = current.paipuDetail ?: return
-        mutableState.value = current.copy(finalPaipuDownload = finalPaipuDownloader.prepareDownload(detail))
     }
 
     fun loadSampleRound(id: String = repository.listSamples().first().id) {

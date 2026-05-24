@@ -7,6 +7,7 @@ data class ParsedPaipuLink(
     val source: LinkSource,
     val uuid: String?,
     val encodedAccountId: String?,
+    val viewAccountId: Long?,
     val amaeRecordId: String?,
     val modeId: String?,
     val zone: String?,
@@ -56,18 +57,20 @@ object PaipuLinkParser {
         val modeId = amaeMatch?.groupValues?.getOrNull(2)?.ifBlank { null }
         val amaeRecordId = amaeMatch?.groupValues?.getOrNull(3)?.ifBlank { null }
         val amaeAccountId = amaeMatch?.groupValues?.getOrNull(4)?.ifBlank { null }
+        val encodedAccountId = accountId ?: amaeAccountId
 
         if (uuid != null) {
             return ParsedPaipuLink(
                 rawInput = trimmed,
                 source = source,
                 uuid = uuid,
-                encodedAccountId = accountId ?: amaeAccountId,
+                encodedAccountId = encodedAccountId,
+                viewAccountId = decodeAccountId(encodedAccountId),
                 amaeRecordId = amaeRecordId,
                 modeId = modeId,
                 zone = zone,
                 status = LinkParseStatus.Recognized,
-                message = "已识别牌谱 UUID。当前版本先使用本地中文样例演示复盘流程，不自动登录或下载完整牌谱。",
+                message = "已识别公开牌谱 UUID。可不登录提取用户提交的公开牌谱。",
             )
         }
 
@@ -76,7 +79,8 @@ object PaipuLinkParser {
                 rawInput = trimmed,
                 source = source,
                 uuid = null,
-                encodedAccountId = amaeAccountId,
+                encodedAccountId = encodedAccountId,
+                viewAccountId = decodeAccountId(encodedAccountId),
                 amaeRecordId = amaeRecordId,
                 modeId = modeId,
                 zone = zone,
@@ -90,6 +94,7 @@ object PaipuLinkParser {
             source = source,
             uuid = null,
             encodedAccountId = null,
+            viewAccountId = null,
             amaeRecordId = null,
             modeId = null,
             zone = null,
@@ -104,11 +109,17 @@ object PaipuLinkParser {
             source = LinkSource.Unknown,
             uuid = null,
             encodedAccountId = null,
+            viewAccountId = null,
             amaeRecordId = null,
             modeId = null,
             zone = null,
             status = LinkParseStatus.Unsupported,
             message = message,
         )
+    }
+
+    fun decodeAccountId(encodedAccountId: String?): Long? {
+        val encoded = encodedAccountId?.toLongOrNull() ?: return null
+        return (((encoded - 1358437L) xor 86216345L) - 1117113L) / 7L
     }
 }

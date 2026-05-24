@@ -7,6 +7,7 @@ data class PaipuDetail(
     val source: LinkSource,
     val uuid: String?,
     val encodedAccountId: String?,
+    val viewAccountId: Long?,
     val amaeRecordId: String?,
     val modeId: String?,
     val officialUrl: String?,
@@ -25,7 +26,7 @@ class PaipuDetailDownloader(
 ) {
     fun download(parsedLink: ParsedPaipuLink): PaipuDetail {
         if (!parsedLink.canStartReview) {
-            return failed(parsedLink, "链接尚未识别，无法下载详情。")
+            return failed(parsedLink, "链接尚未识别，无法导入牌谱。")
         }
 
         parsedLink.uuid?.let {
@@ -33,11 +34,12 @@ class PaipuDetailDownloader(
                 source = parsedLink.source,
                 uuid = it,
                 encodedAccountId = parsedLink.encodedAccountId,
+                viewAccountId = parsedLink.viewAccountId,
                 amaeRecordId = parsedLink.amaeRecordId,
                 modeId = parsedLink.modeId,
                 officialUrl = buildOfficialUrl(it, parsedLink.encodedAccountId),
                 fetchStatus = PaipuFetchStatus.Ready,
-                message = "已生成标准牌谱详情。完整摸切事件流仍需后续接入解析服务。",
+                message = "已生成公开牌谱提取信息。下一步可通过 maj.gg 解析层提取完整牌谱。",
             )
         }
 
@@ -63,17 +65,18 @@ class PaipuDetailDownloader(
                     source = parsedLink.source,
                     uuid = resolved.uuid,
                     encodedAccountId = resolved.encodedAccountId ?: parsedLink.encodedAccountId,
+                    viewAccountId = resolved.viewAccountId ?: parsedLink.viewAccountId,
                     amaeRecordId = recordId,
                     modeId = modeId,
                     officialUrl = location,
                     fetchStatus = PaipuFetchStatus.Resolved,
-                    message = "已通过牌谱屋解析到官方牌谱链接。下一步需要接入完整牌谱事件流解析。",
+                    message = "已通过牌谱屋解析到官方公开牌谱链接。下一步可通过 maj.gg 解析层提取完整牌谱。",
                 )
             } else {
                 failed(parsedLink, "牌谱屋返回 $code，未获得官方牌谱跳转。")
             }
         } catch (error: Exception) {
-            failed(parsedLink, error.message ?: "牌谱详情下载失败。")
+            failed(parsedLink, error.message ?: "牌谱信息获取失败。")
         }
     }
 
@@ -92,6 +95,7 @@ class PaipuDetailDownloader(
             source = parsedLink.source,
             uuid = parsedLink.uuid,
             encodedAccountId = parsedLink.encodedAccountId,
+            viewAccountId = parsedLink.viewAccountId,
             amaeRecordId = parsedLink.amaeRecordId,
             modeId = parsedLink.modeId,
             officialUrl = null,
