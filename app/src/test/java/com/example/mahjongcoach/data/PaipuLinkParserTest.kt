@@ -98,14 +98,21 @@ class PaipuLinkParserTest {
                   {
                     "data": {
                       "game": {
+                        "config": {"meta": {"modeId": 12}},
                         "accounts": [
-                          {"accountId": 100, "nickname": "上家", "seat": 0, "score": 25000},
-                          {"accountId": 16329130, "nickname": "南风快乐岛", "seat": 2, "score": 26000}
+                          {"accountId": 100, "nickname": "上家", "seat": 0},
+                          {"accountId": 200, "nickname": "下家", "seat": 1},
+                          {"accountId": 16329130, "nickname": "南风快乐岛", "seat": 2},
+                          {"accountId": 300, "nickname": "对家", "seat": 3}
                         ],
+                        "finalScores": [56500, 14000, 12900, 16600],
                         "Rounds": [
                           {
+                            "chang": 0,
+                            "ju": 2,
+                            "ben": 1,
+                            "scores": [25000, 25000, 25000, 25000],
                             "Tile": [
-                              {"TileType": "NewRound"},
                               {"TileType": "Draw", "seat": 2, "tile": "9s"},
                               {"TileType": "Discard", "seat": 2, "tile": "9s", "moqie": true},
                               {"TileType": "Call", "seat": 0, "tiles": ["2m", "3m", "4m"]}
@@ -131,9 +138,15 @@ class PaipuLinkParserTest {
         val paipu = MajGgPaipuFetcher().parseHtml(request, html)
 
         assertEquals("260522-2793b6c3-992e-424b-9205-11a121e9ac00", paipu.uuid)
+        assertEquals("12", paipu.head.modeId)
         assertEquals(2, paipu.head.viewSeat)
         assertEquals("南风快乐岛", paipu.head.viewPlayer?.nickname)
+        assertEquals(12900, paipu.head.viewPlayer?.score)
         assertEquals(1, paipu.rounds.size)
+        assertEquals(PaipuEventType.NewRound, paipu.rounds[0].events[0].type)
+        assertEquals("0", paipu.rounds[0].events[0].payload["chang"])
+        assertEquals("2", paipu.rounds[0].events[0].payload["ju"])
+        assertEquals("1", paipu.rounds[0].events[0].payload["ben"])
         assertEquals(PaipuEventType.DealTile, paipu.rounds[0].events[1].type)
         assertEquals(PaipuEventType.DiscardTile, paipu.rounds[0].events[2].type)
         assertEquals("true", paipu.rounds[0].events[2].payload["moqie"])

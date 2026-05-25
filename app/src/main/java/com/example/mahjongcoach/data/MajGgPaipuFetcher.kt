@@ -37,7 +37,8 @@ class MajGgPaipuFetcher : PublicPaipuFetcher {
             ?: game.findArray("rounds")
             ?: throw IllegalStateException("公开解析源结构变化，未找到牌谱局数据。")
 
-        val players = parsePlayers(accounts)
+        val finalScores = game.findIntArray("finalScores") ?: game.findIntArray("final_scores")
+        val players = parsePlayers(accounts, finalScores)
         val viewPlayer = request.viewAccountId?.let { accountId ->
             players.firstOrNull { it.accountId == accountId }
         }
@@ -49,7 +50,10 @@ class MajGgPaipuFetcher : PublicPaipuFetcher {
         val head = PaipuHead(
             modeId = game.optStringOrNull("modeId")
                 ?: game.optStringOrNull("mode_id")
-                ?: game.optStringOrNull("mode"),
+                ?: game.optStringOrNull("mode")
+                ?: game.optJSONObject("config")
+                    ?.optJSONObject("meta")
+                    ?.optStringOrNull("modeId"),
             startTime = null,
             endTime = null,
             players = players,
@@ -164,7 +168,7 @@ class MajGgPaipuFetcher : PublicPaipuFetcher {
         }
     }
 
-    private fun parsePlayers(accounts: JSONArray): List<PaipuPlayer> {
+    private fun parsePlayers(accounts: JSONArray, finalScores: List<Int>? = null): List<PaipuPlayer> {
         return buildList {
             for (index in 0 until accounts.length()) {
                 val account = accounts.optJSONObject(index) ?: continue
@@ -174,7 +178,7 @@ class MajGgPaipuFetcher : PublicPaipuFetcher {
                         accountId = account.optLongOrNull("accountId") ?: account.optLongOrNull("account_id"),
                         nickname = account.optString("nickname", account.optString("name", "玩家${seat + 1}")),
                         seat = seat,
-                        score = account.optIntOrNull("score"),
+                        score = account.optIntOrNull("score") ?: finalScores?.getOrNull(seat),
                     )
                 )
             }
@@ -185,6 +189,7 @@ class MajGgPaipuFetcher : PublicPaipuFetcher {
         return buildList {
             for (roundIndex in 0 until rounds.length()) {
                 val round = rounds.optJSONObject(roundIndex) ?: continue
+                val newRoundPayload = round.toRoundPayload()
                 val tiles = round.findArray("Tile") ?: round.findArray("tiles") ?: JSONArray()
                 val events = mutableListOf<PaipuEvent>()
                 for (eventIndex in 0 until tiles.length()) {
@@ -199,9 +204,11 @@ class MajGgPaipuFetcher : PublicPaipuFetcher {
                             type = PaipuEventType.NewRound,
                             actorSeat = null,
                             tile = null,
-                            payload = emptyMap(),
+                            payload = newRoundPayload,
                         )
                     )
+                } else {
+                    events[0] = events[0].copy(payload = newRoundPayload + events[0].payload)
                 }
                 add(PaipuRound(roundIndex = roundIndex, events = events.mapIndexed { index, event -> event.copy(index = index) }))
             }
@@ -247,8 +254,35 @@ class MajGgPaipuFetcher : PublicPaipuFetcher {
         return result
     }
 
+    private fun JSONObject.toRoundPayload(): Map<String, String> {
+        val wantedKeys = setOf(
+            "chang",
+            "ju",
+            "ben",
+            "honba",
+            "scores",
+            "finalScores",
+            "doras",
+            "dora",
+        )
+        return buildMap {
+            wantedKeys.forEach { key ->
+                if (has(key) && !isNull(key)) put(key, opt(key).toPayloadValue())
+            }
+        }
+    }
+
     private fun JSONObject.findArray(name: String): JSONArray? {
         return optJSONArray(name) ?: optJSONArray(name.replaceFirstChar { it.lowercase() })
+    }
+
+    private fun JSONObject.findIntArray(name: String): List<Int>? {
+        val array = findArray(name) ?: return null
+        return buildList {
+            for (index in 0 until array.length()) {
+                add(array.optInt(index))
+            }
+        }
     }
 
     private fun JSONObject.optLongOrNull(name: String): Long? {
@@ -261,5 +295,13 @@ class MajGgPaipuFetcher : PublicPaipuFetcher {
 
     private fun JSONObject.optStringOrNull(name: String): String? {
         return if (has(name) && !isNull(name)) optString(name).ifBlank { null } else null
+    }
+
+    private fun Any?.toPayloadValue(): String {
+        return when (this) {
+            is JSONArray, is JSONObject -> toString()
+            JSONObject.NULL, null -> ""
+            else -> toString()
+        }
     }
 }

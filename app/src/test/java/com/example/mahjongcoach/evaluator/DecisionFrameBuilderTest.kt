@@ -77,4 +77,37 @@ class DecisionFrameBuilderTest {
         assertEquals(listOf("3z", "3z", "3z"), frames.first().calls[1]?.first())
         assertEquals(listOf("3z", "3z", "3z"), frames.first().visibleTiles.take(3))
     }
+
+    @Test
+    fun build_usesRoundObjectMetadataInsteadOfRoundArrayIndex() {
+        val paipu = FinalPaipu(
+            uuid = "game-1",
+            officialUrl = "https://example.test",
+            head = PaipuHead(
+                modeId = "12",
+                startTime = 1,
+                endTime = 2,
+                players = listOf(PaipuPlayer(1, "me", 0, 25000), PaipuPlayer(2, "opponent", 1, 25000)),
+                viewSeat = 0,
+            ),
+            rounds = listOf(
+                PaipuRound(
+                    roundIndex = 3,
+                    events = listOf(
+                        PaipuEvent(0, PaipuEventType.NewRound, null, null, mapOf("chang" to "0", "ju" to "2", "ben" to "1")),
+                        PaipuEvent(1, PaipuEventType.DealTile, 0, "1m"),
+                        PaipuEvent(2, PaipuEventType.DealTile, 0, "2m"),
+                        PaipuEvent(3, PaipuEventType.DealTile, 0, "3m"),
+                        PaipuEvent(4, PaipuEventType.DealTile, 0, "9p"),
+                        PaipuEvent(5, PaipuEventType.DiscardTile, 0, "9p"),
+                    ),
+                ),
+            ),
+        )
+
+        val frame = DecisionFrameBuilder().build(paipu).first()
+
+        assertEquals("东三局", frame.roundLabel)
+        assertEquals(1, frame.honba)
+    }
 }
