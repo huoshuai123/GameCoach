@@ -28,6 +28,8 @@ class MahjongRoundEvaluator(
                             recommendedChoice = "优先考虑 ${turn.bestDiscard}",
                             reason = "这一手的主要问题是速度变慢。和推荐选择相比，当前弃牌少了约 ${efficiencyLoss.roundToInt()} 张有效牌，听牌前的手牌推进会被明显拖住。",
                             trainingTip = "下一局遇到相似局面时，先数向听和有效牌，再决定是否为了看起来安全而牺牲速度。",
+                            roundLabel = turn.roundLabel,
+                            honba = turn.honba,
                         )
                     )
                 }
@@ -43,6 +45,8 @@ class MahjongRoundEvaluator(
                             recommendedChoice = "考虑转打 ${turn.safestDiscard}",
                             reason = "这一手更像是该收手的节点。对手压力已经很高，而自己仍未听牌，当前弃牌承担的放铳风险和手牌速度不匹配。",
                             trainingTip = "练习“一向听或更慢时遇到强压力”的押引阈值：没有足够打点或安全改良时，优先保命。",
+                            roundLabel = turn.roundLabel,
+                            honba = turn.honba,
                         )
                     )
                 }
@@ -58,6 +62,8 @@ class MahjongRoundEvaluator(
                             recommendedChoice = "优先选择更安全的 ${turn.bestDiscard}",
                             reason = "这一手没有用风险换到足够收益。两个候选的效率差距很小，但当前选择明显更危险。",
                             trainingTip = "当两个候选牌效率接近时，把危险度作为第一排序条件，主动降级明显危险的牌。",
+                            roundLabel = turn.roundLabel,
+                            honba = turn.honba,
                         )
                     )
                 }

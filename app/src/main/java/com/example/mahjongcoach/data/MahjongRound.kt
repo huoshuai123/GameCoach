@@ -7,6 +7,7 @@ data class MahjongRound(
     val description: String,
     val focus: String,
     val turns: List<MahjongTurn>,
+    val context: Map<String, String> = emptyMap(),
 )
 
 data class SampleRound(
@@ -28,4 +29,6 @@ data class MahjongTurn(
     val bestDanger: Double,
     val opponentPressure: Double,
     val shantenAfter: Double,
+    val roundLabel: String? = null,
+    val honba: Int? = null,
 )

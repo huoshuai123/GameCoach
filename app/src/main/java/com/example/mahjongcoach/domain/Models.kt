@@ -15,6 +15,8 @@ data class DecisionPoint(
     val recommendedChoice: String,
     val reason: String,
     val trainingTip: String,
+    val roundLabel: String? = null,
+    val honba: Int? = null,
 ) {
     val priority: Priority
         get() = when {

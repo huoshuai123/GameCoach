@@ -47,7 +47,9 @@ class MajGgPaipuFetcher : PublicPaipuFetcher {
         val viewSeat = viewPlayer?.seat
 
         val head = PaipuHead(
-            modeId = null,
+            modeId = game.optStringOrNull("modeId")
+                ?: game.optStringOrNull("mode_id")
+                ?: game.optStringOrNull("mode"),
             startTime = null,
             endTime = null,
             players = players,
@@ -255,5 +257,9 @@ class MajGgPaipuFetcher : PublicPaipuFetcher {
 
     private fun JSONObject.optIntOrNull(name: String): Int? {
         return if (has(name) && !isNull(name)) optInt(name) else null
+    }
+
+    private fun JSONObject.optStringOrNull(name: String): String? {
+        return if (has(name) && !isNull(name)) optString(name).ifBlank { null } else null
     }
 }

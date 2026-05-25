@@ -21,10 +21,13 @@ object MahjongRoundParser {
                         bestDanger = turn.optDouble("best_danger"),
                         opponentPressure = turn.optDouble("opponent_pressure"),
                         shantenAfter = turn.optDouble("shanten_after"),
+                        roundLabel = turn.optString("round_label").ifBlank { null },
+                        honba = if (turn.has("honba")) turn.optInt("honba") else null,
                     )
                 )
             }
         }
+        val context = root.optJSONObject("context")
         return MahjongRound(
             id = root.optString("id", "sample"),
             title = root.optString("title", "Mahjong Soul Review Demo"),
@@ -32,6 +35,15 @@ object MahjongRoundParser {
             description = root.optString("description", "结构化样例牌谱"),
             focus = root.optString("focus", "综合复盘"),
             turns = parsedTurns,
+            context = context?.let { contextJson ->
+                buildMap {
+                    val keys = contextJson.keys()
+                    while (keys.hasNext()) {
+                        val key = keys.next()
+                        put(key, contextJson.optString(key))
+                    }
+                }
+            } ?: emptyMap(),
         )
     }
 }

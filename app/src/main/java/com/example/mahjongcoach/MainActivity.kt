@@ -334,6 +334,10 @@ private fun ReviewScreen(
         }
 
         item {
+            SituationContextPanel(report.situation.context)
+        }
+
+        item {
             SectionTitle("本局结论")
             Text(report.summary, style = MaterialTheme.typography.body1)
         }
@@ -375,6 +379,29 @@ private fun ReviewScreen(
 
         item {
             Spacer(Modifier.height(16.dp))
+        }
+    }
+}
+
+@Composable
+private fun SituationContextPanel(context: Map<String, String>) {
+    val rows = listOfNotNull(
+        context["room_rank"]?.takeIf { it.isNotBlank() }?.let { "房间段位" to it },
+        context["result"]?.takeIf { it.isNotBlank() }?.let { "结果" to it },
+        context["round"]?.takeIf { it.isNotBlank() }?.let { "局" to it },
+        context["honba"]?.takeIf { it.isNotBlank() }?.let { "本场" to "${it}本场" },
+    )
+    if (rows.isEmpty()) return
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFFFFCF7), RoundedCornerShape(8.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        rows.forEach { (label, value) ->
+            DetailLine(label, value)
         }
     }
 }
@@ -444,6 +471,8 @@ private fun DecisionCard(
                 Text(decision.problemType.label, style = MaterialTheme.typography.caption)
             }
             Spacer(Modifier.height(8.dp))
+            Text(decision.roundContextText(), style = MaterialTheme.typography.caption, color = Color(0xFF5A625F))
+            Spacer(Modifier.height(4.dp))
             Text(decision.label, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(4.dp))
             Text("${decision.currentChoice} -> ${decision.recommendedChoice}")
@@ -476,6 +505,8 @@ private fun DecisionDetail(decision: DecisionPoint) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
+        decision.roundLabel?.let { DetailLine("局", it) }
+        decision.honba?.let { DetailLine("本场", "${it}本场") }
         DetailLine("巡目", decision.turn.toString())
         DetailLine("玩家选择", decision.currentChoice)
         DetailLine("推荐选择", decision.recommendedChoice)
@@ -490,4 +521,12 @@ private fun DetailLine(label: String, value: String) {
         Text(label, style = MaterialTheme.typography.caption, color = Color(0xFF5A625F))
         Text(value)
     }
+}
+
+private fun DecisionPoint.roundContextText(): String {
+    return listOfNotNull(
+        roundLabel,
+        honba?.let { "${it}本场" },
+        "第 ${turn} 巡",
+    ).joinToString(" · ")
 }

@@ -34,6 +34,8 @@ class DangerEstimatorTest {
     ): DecisionFrame {
         return DecisionFrame(
             roundIndex = 0,
+            roundLabel = "东一局",
+            honba = 0,
             turn = 8,
             viewSeat = 0,
             hand = listOf("1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "2z", "2z", "5m", "5m", "9p"),

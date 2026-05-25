@@ -26,6 +26,8 @@ object ReportSchemaExporter {
                     "reason" to it.reason,
                     "training_tip" to it.trainingTip,
                     "priority" to it.priority.name.lowercase(),
+                    "round" to (it.roundLabel ?: ""),
+                    "honba" to (it.honba ?: 0),
                 )
             },
             "training_focus" to mapOf(

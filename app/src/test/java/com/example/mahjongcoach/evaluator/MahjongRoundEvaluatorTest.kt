@@ -37,6 +37,28 @@ class MahjongRoundEvaluatorTest {
         assertTrue(decision.containsKey("reason"))
         assertTrue(decision.containsKey("training_tip"))
         assertTrue(decision.containsKey("priority"))
+        assertTrue(decision.containsKey("round"))
+        assertTrue(decision.containsKey("honba"))
+    }
+
+    @Test
+    fun evaluate_preservesRoomResultAndRoundContext() {
+        val report = MahjongRoundEvaluator().evaluate(
+            sampleRound().copy(
+                context = mapOf(
+                    "room_rank" to "金之间四人南",
+                    "result" to "第2名 31200点",
+                ),
+                turns = sampleRound().turns.map {
+                    it.copy(roundLabel = "东二局", honba = 1)
+                },
+            )
+        )
+
+        assertTrue(report.situation.context["room_rank"] == "金之间四人南")
+        assertTrue(report.situation.context["result"] == "第2名 31200点")
+        assertTrue(report.decisionPoints.all { it.roundLabel == "东二局" })
+        assertTrue(report.decisionPoints.all { it.honba == 1 })
     }
 
     @Test

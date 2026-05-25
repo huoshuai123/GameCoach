@@ -2,6 +2,8 @@ package com.example.mahjongcoach.evaluator
 
 data class DecisionFrame(
     val roundIndex: Int,
+    val roundLabel: String,
+    val honba: Int,
     val turn: Int,
     val viewSeat: Int,
     val hand: List<String>,

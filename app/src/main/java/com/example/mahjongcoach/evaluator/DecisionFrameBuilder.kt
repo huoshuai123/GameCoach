@@ -19,12 +19,16 @@ class DecisionFrameBuilder {
             val frames = mutableListOf<DecisionFrame>()
             var viewTurn = 0
             var lastDraw: String? = null
+            var roundLabel = roundLabel(round.roundIndex)
+            var honba = 0
 
             round.events.forEach { event ->
                 val seat = event.actorSeat
                 when (event.type) {
                     PaipuEventType.NewRound -> {
                         event.payload["dora"]?.let { doraIndicators += it }
+                        roundLabel = event.payload.roundLabelOrDefault(round.roundIndex)
+                        honba = event.payload.intValue("honba", "ben", "ben_chang", "changbang").coerceAtLeast(0)
                     }
 
                     PaipuEventType.DealTile -> {
@@ -41,6 +45,8 @@ class DecisionFrameBuilder {
                                 val handBeforeDiscard = hands.getOrPut(seat) { mutableListOf() }.toList()
                                 frames += DecisionFrame(
                                     roundIndex = round.roundIndex,
+                                    roundLabel = roundLabel,
+                                    honba = honba,
                                     turn = viewTurn,
                                     viewSeat = viewSeat,
                                     hand = handBeforeDiscard,
@@ -96,5 +102,54 @@ class DecisionFrameBuilder {
             .split(",")
             .map { tile -> tile.trim().trim('"', '\'') }
             .filter { it.isNotEmpty() }
+    }
+
+    private fun Map<String, String>.roundLabelOrDefault(roundIndex: Int): String {
+        val explicit = firstValue("round", "round_label", "ju_label", "chang_ju")
+        if (!explicit.isNullOrBlank()) return explicit
+
+        val wind = firstValue("chang", "quan", "wind")?.toIntOrNull()?.let(::windLabel)
+        val ju = firstValue("ju", "kyoku", "round_index", "roundIndex")?.toIntOrNull()
+        if (wind != null && ju != null) return "$wind${numberLabel(ju + 1)}局"
+
+        return roundLabel(roundIndex)
+    }
+
+    private fun Map<String, String>.intValue(vararg keys: String): Int {
+        return firstValue(*keys)?.toIntOrNull() ?: 0
+    }
+
+    private fun Map<String, String>.firstValue(vararg keys: String): String? {
+        keys.forEach { key ->
+            this[key]?.let { return it }
+            this[key.replaceFirstChar { it.uppercase() }]?.let { return it }
+        }
+        return null
+    }
+
+    private fun roundLabel(roundIndex: Int): String {
+        val wind = windLabel(roundIndex / 4)
+        val ju = roundIndex % 4 + 1
+        return "$wind${numberLabel(ju)}局"
+    }
+
+    private fun windLabel(index: Int): String {
+        return when (index) {
+            0 -> "东"
+            1 -> "南"
+            2 -> "西"
+            3 -> "北"
+            else -> "第${index + 1}圈"
+        }
+    }
+
+    private fun numberLabel(value: Int): String {
+        return when (value) {
+            1 -> "一"
+            2 -> "二"
+            3 -> "三"
+            4 -> "四"
+            else -> value.toString()
+        }
     }
 }
