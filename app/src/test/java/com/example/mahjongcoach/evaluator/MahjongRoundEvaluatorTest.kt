@@ -39,6 +39,26 @@ class MahjongRoundEvaluatorTest {
         assertTrue(decision.containsKey("priority"))
     }
 
+    @Test
+    fun evaluate_doesNotInventDecisionPointsForLowSignalRound() {
+        val report = MahjongRoundEvaluator().evaluate(
+            MahjongRound(
+                id = "low-signal",
+                title = "低置信局面",
+                source = "unit-test",
+                description = "all choices are close",
+                focus = "置信度过滤",
+                turns = listOf(
+                    MahjongTurn(3, "4m", "5m", "4m", 18.0, 19.0, 0.22, 0.20, 0.20, 1.0),
+                    MahjongTurn(4, "6p", "6p", "6p", 20.0, 20.0, 0.18, 0.18, 0.20, 1.0),
+                ),
+            )
+        )
+
+        assertTrue(report.decisionPoints.isEmpty())
+        assertTrue(report.trainingFocus.theme.contains("保持"))
+    }
+
     private fun sampleRound(): MahjongRound {
         return MahjongRound(
             id = "unit-test",
