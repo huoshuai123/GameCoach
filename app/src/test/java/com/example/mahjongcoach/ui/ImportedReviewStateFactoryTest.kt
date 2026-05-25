@@ -8,7 +8,6 @@ import com.example.mahjongcoach.data.PaipuDetail
 import com.example.mahjongcoach.data.PaipuFetchStatus
 import com.example.mahjongcoach.data.PaipuImportResult
 import com.example.mahjongcoach.data.ParsedPaipuLink
-import com.example.mahjongcoach.data.SampleRound
 import com.example.mahjongcoach.domain.EvaluationReport
 import com.example.mahjongcoach.domain.Situation
 import com.example.mahjongcoach.domain.TrainingFocus
@@ -59,15 +58,13 @@ class ImportedReviewStateFactoryTest {
             report = report,
         )
 
-        val state = ImportedReviewStateFactory.readyOrNull(
-            samples = listOf(SampleRound("sample", "样例", "demo", "效率", "sample.json")),
-            result = result,
-        )
+        val state = ImportedReviewStateFactory.readyOrNull(result)
 
         assertTrue(state is ReviewUiState.Ready)
         val ready = state as ReviewUiState.Ready
         assertEquals("imported-game", ready.selectedSample.id)
         assertEquals("导入复盘", ready.selectedSample.title)
+        assertEquals(listOf(ready.selectedSample), ready.samples)
         assertEquals(report, ready.report)
     }
 }

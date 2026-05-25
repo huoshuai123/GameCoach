@@ -27,13 +27,12 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun showLinkEntry() {
-        mutableState.value = ReviewUiState.LinkEntry(repository.listSamples())
+        mutableState.value = ReviewUiState.LinkEntry()
     }
 
     fun updateLinkInput(input: String) {
         val current = mutableState.value
         mutableState.value = ReviewUiState.LinkEntry(
-            samples = repository.listSamples(),
             input = input,
             parsedLink = (current as? ReviewUiState.LinkEntry)?.parsedLink,
             paipuDetail = null,
@@ -53,7 +52,7 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
             val result = withContext(Dispatchers.IO) {
                 importPipeline.import(current.input)
             }
-            ImportedReviewStateFactory.readyOrNull(repository.listSamples(), result)?.let { ready ->
+            ImportedReviewStateFactory.readyOrNull(result)?.let { ready ->
                 mutableState.value = ready
                 return@launch
             }

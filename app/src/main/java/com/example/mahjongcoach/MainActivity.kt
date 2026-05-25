@@ -76,9 +76,8 @@ fun MahjongCoachApp(viewModel: ReviewViewModel = viewModel()) {
         ) {
             when (val current = state) {
                 ReviewUiState.Loading -> LoadingScreen()
-                is ReviewUiState.Error -> ErrorScreen(current.message) { viewModel.loadSampleRound() }
+                is ReviewUiState.Error -> ErrorScreen(current.message) { viewModel.showLinkEntry() }
                 is ReviewUiState.LinkEntry -> LinkEntryScreen(
-                    samples = current.samples,
                     input = current.input,
                     parsedLink = current.parsedLink,
                     paipuDetail = current.paipuDetail,
@@ -86,15 +85,12 @@ fun MahjongCoachApp(viewModel: ReviewViewModel = viewModel()) {
                     isDownloading = current.isDownloading,
                     onInputChanged = viewModel::updateLinkInput,
                     onImportClick = viewModel::importPublicPaipu,
-                    onSampleSelected = viewModel::loadSampleRound,
                 )
                 is ReviewUiState.Ready -> ReviewScreen(
-                    samples = current.samples,
                     selectedSample = current.selectedSample,
                     report = current.report,
                     selectedDecision = current.selectedDecision,
                     onDecisionSelected = viewModel::selectDecision,
-                    onSampleSelected = viewModel::loadSampleRound,
                     onBackToLinkEntry = viewModel::showLinkEntry,
                 )
             }
@@ -117,7 +113,6 @@ private fun LoadingScreen() {
 
 @Composable
 private fun LinkEntryScreen(
-    samples: List<SampleRound>,
     input: String,
     parsedLink: ParsedPaipuLink?,
     paipuDetail: PaipuDetail?,
@@ -125,7 +120,6 @@ private fun LinkEntryScreen(
     isDownloading: Boolean,
     onInputChanged: (String) -> Unit,
     onImportClick: () -> Unit,
-    onSampleSelected: (String) -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier
@@ -153,15 +147,7 @@ private fun LinkEntryScreen(
         }
 
         item {
-            SectionTitle("中文样例预览")
             Text("当前版本不做账号登录、凭证保存或历史牌谱同步。", color = Color(0xFF5A625F))
-        }
-
-        items(samples) { sample ->
-            SampleCard(sample = sample, onClick = { onSampleSelected(sample.id) })
-        }
-
-        item {
             Spacer(Modifier.height(16.dp))
         }
     }
@@ -263,26 +249,6 @@ private fun ImportResultPanel(
 }
 
 @Composable
-private fun SampleCard(sample: SampleRound, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(8.dp),
-        elevation = 2.dp,
-        backgroundColor = Color(0xFFFFFCF7),
-    ) {
-        Column(Modifier.padding(16.dp)) {
-            Text(sample.title, style = MaterialTheme.typography.h6, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(6.dp))
-            Text(sample.description, color = Color(0xFF5A625F))
-            Spacer(Modifier.height(10.dp))
-            Text("训练主题：${sample.focus}", color = Color(0xFF22665A), fontWeight = FontWeight.Bold)
-        }
-    }
-}
-
-@Composable
 private fun ErrorScreen(message: String, onRetry: () -> Unit) {
     Column(
         modifier = Modifier
@@ -302,12 +268,10 @@ private fun ErrorScreen(message: String, onRetry: () -> Unit) {
 
 @Composable
 private fun ReviewScreen(
-    samples: List<SampleRound>,
     selectedSample: SampleRound,
     report: EvaluationReport,
     selectedDecision: DecisionPoint?,
     onDecisionSelected: (DecisionPoint) -> Unit,
-    onSampleSelected: (String) -> Unit,
     onBackToLinkEntry: () -> Unit,
 ) {
     LazyColumn(
@@ -324,11 +288,6 @@ private fun ReviewScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = onBackToLinkEntry) {
                     Text("返回链接")
-                }
-                samples.firstOrNull { it.id != selectedSample.id }?.let { next ->
-                    Button(onClick = { onSampleSelected(next.id) }) {
-                        Text("切换样例")
-                    }
                 }
             }
         }

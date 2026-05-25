@@ -4,7 +4,7 @@ import com.example.mahjongcoach.data.PaipuImportResult
 import com.example.mahjongcoach.data.SampleRound
 
 object ImportedReviewStateFactory {
-    fun readyOrNull(samples: List<SampleRound>, result: PaipuImportResult): ReviewUiState.Ready? {
+    fun readyOrNull(result: PaipuImportResult): ReviewUiState.Ready? {
         val report = result.report ?: return null
         val uuid = result.detail.uuid ?: result.parsedLink.uuid ?: "unknown"
         val importedSample = SampleRound(
@@ -15,7 +15,7 @@ object ImportedReviewStateFactory {
             assetName = "",
         )
         return ReviewUiState.Ready(
-            samples = listOf(importedSample) + samples,
+            samples = listOf(importedSample),
             selectedSample = importedSample,
             report = report,
         )

@@ -10,7 +10,6 @@ import com.example.mahjongcoach.domain.EvaluationReport
 sealed interface ReviewUiState {
     object Loading : ReviewUiState
     data class LinkEntry(
-        val samples: List<SampleRound>,
         val input: String = "",
         val parsedLink: ParsedPaipuLink? = null,
         val paipuDetail: PaipuDetail? = null,
