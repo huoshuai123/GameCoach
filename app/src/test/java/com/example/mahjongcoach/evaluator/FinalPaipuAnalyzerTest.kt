@@ -59,4 +59,25 @@ class FinalPaipuAnalyzerTest {
         assertTrue(round.turns.first().ukeireBest >= round.turns.first().ukeireChosen)
         assertTrue(round.turns.first().chosenDanger in 0.0..1.0)
     }
+
+    @Test
+    fun analyze_labelsModeTwelveAsJadeRoom() {
+        val paipu = FinalPaipu(
+            uuid = "game-1",
+            officialUrl = "https://example.test",
+            head = PaipuHead(
+                modeId = "12",
+                startTime = 1,
+                endTime = 2,
+                players = listOf(PaipuPlayer(1, "me", 0, 12900)),
+                viewSeat = 0,
+            ),
+            rounds = emptyList(),
+        )
+
+        val round = FinalPaipuAnalyzer().analyze(paipu)
+
+        assertEquals("玉之间", round.context["room_rank"])
+        assertEquals("第1名 12900点 (-12100)", round.context["result"])
+    }
 }

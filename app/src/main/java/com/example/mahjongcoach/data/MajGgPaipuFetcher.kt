@@ -37,7 +37,9 @@ class MajGgPaipuFetcher : PublicPaipuFetcher {
             ?: game.findArray("rounds")
             ?: throw IllegalStateException("公开解析源结构变化，未找到牌谱局数据。")
 
-        val finalScores = game.findIntArray("finalScores") ?: game.findIntArray("final_scores")
+        val finalScores = game.resultScores()
+            ?: game.findIntArray("finalScores")
+            ?: game.findIntArray("final_scores")
         val players = parsePlayers(accounts, finalScores)
         val viewPlayer = request.viewAccountId?.let { accountId ->
             players.firstOrNull { it.accountId == accountId }
@@ -77,7 +79,7 @@ class MajGgPaipuFetcher : PublicPaipuFetcher {
         }
             ?.replace("&quot;", "\"")
             ?: throw IllegalStateException("公开解析源结构变化，未找到 Fresh state。")
-        return JSONObject(json)
+        return JSONObject(json).also { it.resolveFreshReferences() }
     }
 
     private fun findFreshStateScriptContent(html: String): String? {
@@ -165,6 +167,50 @@ class MajGgPaipuFetcher : PublicPaipuFetcher {
                 null
             }
             else -> null
+        }
+    }
+
+    private fun JSONObject.resolveFreshReferences() {
+        val values = optJSONArray("v") ?: return
+        val references = optJSONArray("r") ?: return
+        for (index in 0 until references.length()) {
+            val reference = references.optJSONArray(index) ?: continue
+            val sourcePath = reference.optJSONArray(0) ?: continue
+            val targetPath = reference.optJSONArray(1) ?: continue
+            val sourceValue = values.valueAt(sourcePath) ?: continue
+            values.setValueAt(targetPath, sourceValue)
+        }
+    }
+
+    private fun JSONArray.valueAt(path: JSONArray): Any? {
+        var current: Any? = this
+        for (index in 0 until path.length()) {
+            val key = path.optString(index)
+            current = when (current) {
+                is JSONArray -> current.opt(key.toIntOrNull() ?: return null)
+                is JSONObject -> current.opt(key)
+                else -> return null
+            }
+        }
+        return current
+    }
+
+    private fun JSONArray.setValueAt(path: JSONArray, value: Any) {
+        if (path.length() == 0) return
+        var current: Any? = this
+        for (index in 0 until path.length() - 1) {
+            val key = path.optString(index)
+            current = when (current) {
+                is JSONArray -> current.opt(key.toIntOrNull() ?: return)
+                is JSONObject -> current.opt(key)
+                else -> return
+            }
+        }
+
+        val lastKey = path.optString(path.length() - 1)
+        when (current) {
+            is JSONArray -> current.put(lastKey.toIntOrNull() ?: return, value)
+            is JSONObject -> current.put(lastKey, value)
         }
     }
 
@@ -283,6 +329,22 @@ class MajGgPaipuFetcher : PublicPaipuFetcher {
                 add(array.optInt(index))
             }
         }
+    }
+
+    private fun JSONObject.resultScores(): List<Int>? {
+        val players = optJSONObject("result")?.optJSONArray("players") ?: return null
+        val scoresBySeat = mutableMapOf<Int, Int>()
+        for (index in 0 until players.length()) {
+            val player = players.optJSONObject(index) ?: continue
+            val seat = player.optIntOrNull("seat") ?: index
+            val score = player.optIntOrNull("partPoint1")
+                ?: player.optIntOrNull("score")
+                ?: continue
+            scoresBySeat[seat] = score
+        }
+        if (scoresBySeat.isEmpty()) return null
+        val maxSeat = scoresBySeat.keys.maxOrNull() ?: return null
+        return (0..maxSeat).map { scoresBySeat[it] ?: 0 }
     }
 
     private fun JSONObject.optLongOrNull(name: String): Long? {

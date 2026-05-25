@@ -152,6 +152,73 @@ class PaipuLinkParserTest {
         assertEquals("true", paipu.rounds[0].events[2].payload["moqie"])
     }
 
+    @Test
+    fun majGgFetcher_resolvesFreshReferencesForRealGameResultShape() {
+        val html = """
+            <script id="__FRSH_STATE_real" type="application/json">
+              {
+                "v": [[
+                  {},
+                  {},
+                  {
+                    "results": {
+                      "players": [
+                        {"partPoint1": 56500},
+                        {"seat": 3, "partPoint1": 16600},
+                        {"seat": 1, "partPoint1": 14000},
+                        {"seat": 2, "partPoint1": 12900}
+                      ]
+                    }
+                  },
+                  {
+                    "game": {
+                      "config": {"meta": {"modeId": 12}},
+                      "accounts": [
+                        {"accountId": 8657143, "nickname": "神之楔"},
+                        {"accountId": 15707279, "nickname": "疯狂小呆鸟", "seat": 3},
+                        {"accountId": 16329130, "nickname": "南风快乐岛", "seat": 2},
+                        {"accountId": 103264188, "nickname": "八入折", "seat": 1}
+                      ],
+                      "result": 0,
+                      "Rounds": [
+                        {
+                          "chang": 0,
+                          "ju": 2,
+                          "ben": 0,
+                          "Tile": [
+                            {"TileType": "Draw", "seat": 2, "tile": "9s"},
+                            {"TileType": "Discard", "seat": 2, "tile": "9s"}
+                          ]
+                        }
+                      ]
+                    },
+                    "finalScores": [56500, 14000, 12900, 16600]
+                  }
+                ]],
+                "r": [
+                  [["0", "2", "results"], ["0", "3", "game", "result"]]
+                ]
+              }
+            </script>
+        """.trimIndent()
+
+        val paipu = MajGgPaipuFetcher().parseHtml(
+            PublicPaipuFetchRequest(
+                uuid = "260522-2793b6c3-992e-424b-9205-11a121e9ac00",
+                officialUrl = "https://game.maj-soul.com/1/?paipu=260522-2793b6c3-992e-424b-9205-11a121e9ac00_a64445483",
+                majGgUrl = "https://maj.gg/game/260522-2793b6c3-992e-424b-9205-11a121e9ac00",
+                encodedAccountId = "64445483",
+                viewAccountId = 16329130L,
+            ),
+            html,
+        )
+
+        assertEquals("12", paipu.head.modeId)
+        assertEquals(2, paipu.head.viewSeat)
+        assertEquals(12900, paipu.head.viewPlayer?.score)
+        assertEquals("2", paipu.rounds.first().events.first().payload["ju"])
+    }
+
     @Test(expected = IllegalStateException::class)
     fun majGgFetcher_failsWhenViewAccountIsMissing() {
         val html = """
