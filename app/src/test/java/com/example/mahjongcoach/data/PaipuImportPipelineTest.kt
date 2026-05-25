@@ -39,5 +39,7 @@ class PaipuImportPipelineTest {
         assertEquals(FinalPaipuDownloadStatus.Fetched, result.finalPaipuDownload.status)
         assertEquals(16329130L, result.finalPaipuDownload.request?.viewAccountId)
         assertNotNull(result.finalPaipuDownload.paipu)
+        assertNotNull(result.report)
+        assertEquals("Mahjong Soul", result.report?.situation?.game)
     }
 }

@@ -62,11 +62,7 @@ class DecisionFrameBuilder {
 
                     PaipuEventType.ChiPengGang -> {
                         if (seat != null) {
-                            val tiles = event.payload["tiles"]
-                                ?.split(",")
-                                ?.map { it.trim() }
-                                ?.filter { it.isNotEmpty() }
-                                .orEmpty()
+                            val tiles = parsePayloadTiles(event.payload["tiles"])
                             calls.getOrPut(seat) { mutableListOf() }.add(tiles)
                             tiles.forEach { removeOne(hands.getOrPut(seat) { mutableListOf() }, it) }
                         }
@@ -90,5 +86,15 @@ class DecisionFrameBuilder {
         val key = Tile.parse(tile).normalizedKey
         val index = hand.indexOfFirst { Tile.parse(it).normalizedKey == key }
         if (index >= 0) hand.removeAt(index)
+    }
+
+    private fun parsePayloadTiles(rawTiles: String?): List<String> {
+        if (rawTiles.isNullOrBlank()) return emptyList()
+        return rawTiles
+            .removePrefix("[")
+            .removeSuffix("]")
+            .split(",")
+            .map { tile -> tile.trim().trim('"', '\'') }
+            .filter { it.isNotEmpty() }
     }
 }

@@ -53,6 +53,10 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
             val result = withContext(Dispatchers.IO) {
                 importPipeline.import(current.input)
             }
+            ImportedReviewStateFactory.readyOrNull(repository.listSamples(), result)?.let { ready ->
+                mutableState.value = ready
+                return@launch
+            }
             val latest = mutableState.value as? ReviewUiState.LinkEntry ?: return@launch
             mutableState.value = latest.copy(
                 isDownloading = false,
