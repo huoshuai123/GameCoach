@@ -112,6 +112,7 @@ class PaipuLinkParserTest {
                             "ju": 2,
                             "ben": 1,
                             "scores": [25000, 25000, 25000, 25000],
+                            "tiles2": ["1m", "2m", "3m"],
                             "Tile": [
                               {"TileType": "Draw", "seat": 2, "tile": "9s"},
                               {"TileType": "Discard", "seat": 2, "tile": "9s", "moqie": true},
@@ -147,6 +148,7 @@ class PaipuLinkParserTest {
         assertEquals("0", paipu.rounds[0].events[0].payload["chang"])
         assertEquals("2", paipu.rounds[0].events[0].payload["ju"])
         assertEquals("1", paipu.rounds[0].events[0].payload["ben"])
+        assertEquals("""["1m","2m","3m"]""", paipu.rounds[0].events[0].payload["tiles2"])
         assertEquals(PaipuEventType.DealTile, paipu.rounds[0].events[1].type)
         assertEquals(PaipuEventType.DiscardTile, paipu.rounds[0].events[2].type)
         assertEquals("true", paipu.rounds[0].events[2].payload["moqie"])

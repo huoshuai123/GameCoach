@@ -310,6 +310,10 @@ class MajGgPaipuFetcher : PublicPaipuFetcher {
             "finalScores",
             "doras",
             "dora",
+            "tiles0",
+            "tiles1",
+            "tiles2",
+            "tiles3",
         )
         return buildMap {
             wantedKeys.forEach { key ->

@@ -80,4 +80,47 @@ class FinalPaipuAnalyzerTest {
         assertEquals("玉之间", round.context["room_rank"])
         assertEquals("第1名 12900点 (-12100)", round.context["result"])
     }
+
+    @Test
+    fun analyze_keepsEastThreeLabelWhenDecisionComesFromInitialHand() {
+        val paipu = FinalPaipu(
+            uuid = "game-1",
+            officialUrl = "https://example.test",
+            head = PaipuHead(
+                modeId = "12",
+                startTime = 1,
+                endTime = 2,
+                players = listOf(
+                    PaipuPlayer(1, "east", 0, 25000),
+                    PaipuPlayer(2, "south", 1, 25000),
+                    PaipuPlayer(3, "me", 2, 25000),
+                    PaipuPlayer(4, "north", 3, 25000),
+                ),
+                viewSeat = 2,
+            ),
+            rounds = listOf(
+                PaipuRound(
+                    roundIndex = 3,
+                    events = listOf(
+                        PaipuEvent(
+                            0,
+                            PaipuEventType.NewRound,
+                            null,
+                            null,
+                            mapOf(
+                                "chang" to "0",
+                                "ju" to "2",
+                                "tiles2" to """["1m","2m","3m","4p","5p","6p","7s","8s","9s","2z","2z","5m","5m","9p"]""",
+                            ),
+                        ),
+                        PaipuEvent(1, PaipuEventType.DiscardTile, 2, "9p"),
+                    ),
+                ),
+            ),
+        )
+
+        val round = FinalPaipuAnalyzer().analyze(paipu)
+
+        assertEquals("东三局", round.turns.first().roundLabel)
+    }
 }

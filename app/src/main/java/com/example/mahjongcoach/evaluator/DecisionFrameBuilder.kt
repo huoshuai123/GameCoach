@@ -27,6 +27,7 @@ class DecisionFrameBuilder {
                 when (event.type) {
                     PaipuEventType.NewRound -> {
                         event.payload["dora"]?.let { doraIndicators += it }
+                        initializeHands(hands, event.payload)
                         roundLabel = event.payload.roundLabelOrDefault(round.roundIndex)
                         honba = event.payload.intValue("honba", "ben", "ben_chang", "changbang").coerceAtLeast(0)
                     }
@@ -102,6 +103,15 @@ class DecisionFrameBuilder {
             .split(",")
             .map { tile -> tile.trim().trim('"', '\'') }
             .filter { it.isNotEmpty() }
+    }
+
+    private fun initializeHands(hands: MutableMap<Int, MutableList<String>>, payload: Map<String, String>) {
+        for (seat in 0..3) {
+            val tiles = parsePayloadTiles(payload["tiles$seat"])
+            if (tiles.isNotEmpty()) {
+                hands[seat] = tiles.toMutableList()
+            }
+        }
     }
 
     private fun Map<String, String>.roundLabelOrDefault(roundIndex: Int): String {
