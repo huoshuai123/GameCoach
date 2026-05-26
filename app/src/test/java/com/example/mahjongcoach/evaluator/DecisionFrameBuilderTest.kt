@@ -112,6 +112,44 @@ class DecisionFrameBuilderTest {
     }
 
     @Test
+    fun build_treatsMissingChangAndJuAsEastOneWhenHonbaIsPresent() {
+        val paipu = FinalPaipu(
+            uuid = "game-1",
+            officialUrl = "https://example.test",
+            head = PaipuHead(
+                modeId = "12",
+                startTime = 1,
+                endTime = 2,
+                players = listOf(PaipuPlayer(1, "me", 0, 25000), PaipuPlayer(2, "opponent", 1, 25000)),
+                viewSeat = 0,
+            ),
+            rounds = listOf(
+                PaipuRound(
+                    roundIndex = 1,
+                    events = listOf(
+                        PaipuEvent(
+                            0,
+                            PaipuEventType.NewRound,
+                            null,
+                            null,
+                            mapOf(
+                                "ben" to "1",
+                                "tiles0" to """["1m","2m","3m","4p","5p","6p","7s","8s","9s","2z","2z","5m","5m","9p"]""",
+                            ),
+                        ),
+                        PaipuEvent(1, PaipuEventType.DiscardTile, 0, "9p"),
+                    ),
+                ),
+            ),
+        )
+
+        val frame = DecisionFrameBuilder().build(paipu).first()
+
+        assertEquals("东一局", frame.roundLabel)
+        assertEquals(1, frame.honba)
+    }
+
+    @Test
     fun build_usesInitialRoundHandForFirstDiscardDecision() {
         val paipu = FinalPaipu(
             uuid = "game-1",

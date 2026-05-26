@@ -27,7 +27,7 @@ class FinalPaipuAnalyzerTest {
                 PaipuRound(
                     roundIndex = 1,
                     events = listOf(
-                        PaipuEvent(0, PaipuEventType.NewRound, null, null, mapOf("honba" to "2")),
+                        PaipuEvent(0, PaipuEventType.NewRound, null, null, mapOf("ju" to "1", "honba" to "2")),
                         PaipuEvent(1, PaipuEventType.DealTile, 0, "1m"),
                         PaipuEvent(2, PaipuEventType.DealTile, 0, "2m"),
                         PaipuEvent(3, PaipuEventType.DealTile, 0, "3m"),

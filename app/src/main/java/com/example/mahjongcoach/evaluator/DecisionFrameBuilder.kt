@@ -118,11 +118,18 @@ class DecisionFrameBuilder {
         val explicit = firstValue("round", "round_label", "ju_label", "chang_ju")
         if (!explicit.isNullOrBlank()) return explicit
 
-        val wind = firstValue("chang", "quan", "wind")?.toIntOrNull()?.let(::windLabel)
-        val ju = firstValue("ju", "kyoku", "round_index", "roundIndex")?.toIntOrNull()
-        if (wind != null && ju != null) return "$wind${numberLabel(ju + 1)}局"
+        if (hasRoundMetadata()) {
+            val wind = firstValue("chang", "quan", "wind")?.toIntOrNull() ?: 0
+            val ju = firstValue("ju", "kyoku", "round_index", "roundIndex")?.toIntOrNull() ?: 0
+            return "${windLabel(wind)}${numberLabel(ju + 1)}局"
+        }
 
         return roundLabel(roundIndex)
+    }
+
+    private fun Map<String, String>.hasRoundMetadata(): Boolean {
+        return listOf("chang", "quan", "wind", "ju", "kyoku", "round_index", "roundIndex", "ben", "honba")
+            .any { key -> containsKey(key) || containsKey(key.replaceFirstChar { it.uppercase() }) }
     }
 
     private fun Map<String, String>.intValue(vararg keys: String): Int {
