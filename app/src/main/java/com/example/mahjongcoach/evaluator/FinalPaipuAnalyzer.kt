@@ -36,8 +36,8 @@ class FinalPaipuAnalyzer(
 
         val chosen = candidates.firstOrNull { sameTile(it.discard, frame.chosenDiscard) }
             ?: candidates.first()
-        val bestEfficiency = candidates.maxWithOrNull(
-            compareBy<UkeireCandidate> { it.ukeire }.thenBy { -it.shantenAfter },
+        val bestEfficiency = candidates.minWithOrNull(
+            compareBy<UkeireCandidate> { it.shantenAfter }.thenByDescending { it.ukeire },
         ) ?: return null
         val dangerByDiscard = candidates.associate { candidate ->
             candidate.discard to dangerEstimator.estimate(candidate.discard, frame).score

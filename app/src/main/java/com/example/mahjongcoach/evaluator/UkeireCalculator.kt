@@ -1,5 +1,9 @@
 package com.example.mahjongcoach.evaluator
 
+import mahjongutils.models.Tile as MahjongUtilsTile
+import mahjongutils.shanten.ShantenWithGot
+import mahjongutils.shanten.shanten
+
 data class UkeireCandidate(
     val discard: String,
     val shantenAfter: Int,
@@ -7,28 +11,26 @@ data class UkeireCandidate(
     val improvingTiles: List<String>,
 )
 
-class UkeireCalculator(
-    private val shantenCalculator: ShantenCalculator = ShantenCalculator(),
-) {
+class UkeireCalculator {
     fun evaluateCandidates(hand: List<String>, visibleTiles: List<String>): List<UkeireCandidate> {
-        return hand
-            .distinctBy { Tile.parse(it).normalizedKey }
-            .map { discard ->
-                val afterDiscard = removeOne(hand, discard)
-                val shanten = shantenCalculator.calculate(afterDiscard)
-                val knownTiles = visibleTiles + afterDiscard
-                val improving = allTileTypes().filter { draw ->
-                    liveCount(draw, knownTiles) > 0 &&
-                        shantenCalculator.calculate(afterDiscard + draw) < shanten
-                }
-                UkeireCandidate(
-                    discard = discard,
-                    shantenAfter = shanten,
-                    ukeire = improving.sumOf { liveCount(it, knownTiles) },
-                    improvingTiles = improving,
-                )
-            }
+        val result = shanten(hand.map(::toMahjongUtilsTile))
+        val shantenInfo = result.shantenInfo as? ShantenWithGot ?: return emptyList()
+        return shantenInfo.discardToAdvance.map { (discard, afterDiscard) ->
+            val afterDiscardTiles = removeOne(hand, discard.toString())
+            val knownTiles = visibleTiles + afterDiscardTiles
+            val liveImprovingTiles = afterDiscard.advance
+                .map { it.toString() }
+                .filter { liveCount(it, knownTiles) > 0 }
+            UkeireCandidate(
+                discard = discard.toString(),
+                shantenAfter = afterDiscard.shantenNum,
+                ukeire = liveImprovingTiles.sumOf { liveCount(it, knownTiles) },
+                improvingTiles = liveImprovingTiles,
+            )
+        }
     }
+
+    private fun toMahjongUtilsTile(tile: String): MahjongUtilsTile = MahjongUtilsTile[tile]
 
     private fun removeOne(hand: List<String>, discard: String): List<String> {
         val discardKey = Tile.parse(discard).normalizedKey
@@ -47,14 +49,5 @@ class UkeireCalculator(
         val key = Tile.parse(tile).normalizedKey
         val visible = visibleTiles.count { Tile.parse(it).normalizedKey == key }
         return (4 - visible).coerceAtLeast(0)
-    }
-
-    private fun allTileTypes(): List<String> {
-        return buildList {
-            for (suit in listOf("m", "p", "s")) {
-                for (rank in 1..9) add("$rank$suit")
-            }
-            for (rank in 1..7) add("${rank}z")
-        }
     }
 }

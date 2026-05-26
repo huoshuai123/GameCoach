@@ -43,6 +43,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.1")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1")
+    implementation("io.github.ssttkkl:mahjong-utils:0.7.7")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 

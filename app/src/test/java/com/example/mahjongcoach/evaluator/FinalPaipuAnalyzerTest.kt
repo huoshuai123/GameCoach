@@ -123,4 +123,41 @@ class FinalPaipuAnalyzerTest {
 
         assertEquals("东三局", round.turns.first().roundLabel)
     }
+
+    @Test
+    fun analyze_prefersLowerShantenDiscardOverHigherUkeireBackstep() {
+        val paipu = FinalPaipu(
+            uuid = "game-1",
+            officialUrl = "https://example.test",
+            head = PaipuHead(
+                modeId = "12",
+                startTime = 1,
+                endTime = 2,
+                players = listOf(PaipuPlayer(1, "me", 0, 25000)),
+                viewSeat = 0,
+            ),
+            rounds = listOf(
+                PaipuRound(
+                    roundIndex = 0,
+                    events = listOf(
+                        PaipuEvent(
+                            0,
+                            PaipuEventType.NewRound,
+                            null,
+                            null,
+                            mapOf(
+                                "tiles0" to """["1p","1p","2p","2p","3p","3p","4s","4s","5s","5s","6s","1z","2z","7z"]""",
+                            ),
+                        ),
+                        PaipuEvent(1, PaipuEventType.DiscardTile, 0, "5s"),
+                    ),
+                ),
+            ),
+        )
+
+        val turn = FinalPaipuAnalyzer().analyze(paipu).turns.first()
+
+        assertTrue("best discard should preserve the lower shanten path", turn.shantenAfter > 1.0)
+        assertTrue("recommended discard must not choose a backstep only because it has more ukeire", turn.bestDiscard != "5s")
+    }
 }
