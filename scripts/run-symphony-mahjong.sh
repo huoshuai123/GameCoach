@@ -21,10 +21,20 @@ if [[ -z "${LINEAR_PROJECT_SLUG:-}" ]]; then
 fi
 
 mkdir -p "$LOGS_ROOT"
+RUNTIME_WORKFLOW="$LOGS_ROOT/WORKFLOW.runtime.md"
+
+if [[ "$LINEAR_PROJECT_SLUG" == *\"* ]]; then
+  echo "LINEAR_PROJECT_SLUG must not contain double quotes."
+  exit 1
+fi
+
+sed "s/project_slug: \\\$LINEAR_PROJECT_SLUG/project_slug: \"${LINEAR_PROJECT_SLUG}\"/" \
+  "$WORKFLOW_FILE" > "$RUNTIME_WORKFLOW"
+
 cd "$SYMPHONY_DIR"
 
 exec mise exec -- ./bin/symphony \
   --i-understand-that-this-will-be-running-without-the-usual-guardrails \
   --logs-root "$LOGS_ROOT" \
   --port "$PORT" \
-  "$WORKFLOW_FILE"
+  "$RUNTIME_WORKFLOW"

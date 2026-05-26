@@ -1,9 +1,12 @@
 ---
 tracker:
   kind: linear
-  # TODO: Start Symphony with both variables set:
+  # TODO: Start Symphony through scripts/run-symphony-mahjong.sh with both variables set:
   #   export LINEAR_API_KEY="your-linear-personal-api-key"
   #   export LINEAR_PROJECT_SLUG="your-linear-project-slug"
+  #
+  # Symphony does not expand project_slug environment variables itself; the launch
+  # script writes a runtime workflow with this value substituted.
   #
   # Linear project slug example:
   #   https://linear.app/acme/project/gamecoach-123abc
@@ -11,6 +14,7 @@ tracker:
   project_slug: $LINEAR_PROJECT_SLUG
   api_key: $LINEAR_API_KEY
   active_states:
+    - Backlog
     - Todo
     - In Progress
     - Rework
