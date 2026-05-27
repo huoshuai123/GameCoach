@@ -56,6 +56,9 @@ class FinalPaipuAnalyzerTest {
         assertEquals(1, round.turns.size)
         assertEquals("东二局", round.turns.first().roundLabel)
         assertEquals(2, round.turns.first().honba)
+        assertEquals("9p", round.turns.first().contextSnapshot?.drawnTile)
+        assertTrue(round.turns.first().contextSnapshot?.hand?.contains("9p") == true)
+        assertTrue(round.turns.first().contextSnapshot?.candidates?.isNotEmpty() == true)
         assertTrue(round.turns.first().ukeireBest >= round.turns.first().ukeireChosen)
         assertTrue(round.turns.first().chosenDanger in 0.0..1.0)
     }

@@ -3,6 +3,8 @@ package com.example.mahjongcoach.evaluator
 import com.example.mahjongcoach.data.FinalPaipu
 import com.example.mahjongcoach.data.MahjongRound
 import com.example.mahjongcoach.data.MahjongTurn
+import com.example.mahjongcoach.data.TurnCandidateSnapshot
+import com.example.mahjongcoach.data.TurnContextSnapshot
 
 class FinalPaipuAnalyzer(
     private val frameBuilder: DecisionFrameBuilder = DecisionFrameBuilder(),
@@ -43,6 +45,18 @@ class FinalPaipuAnalyzer(
             candidate.discard to dangerEstimator.estimate(candidate.discard, frame).score
         }
         val safest = dangerByDiscard.minByOrNull { it.value } ?: return null
+        val candidateSnapshots = candidates
+            .sortedWith(compareBy<UkeireCandidate> { it.shantenAfter }.thenByDescending { it.ukeire })
+            .take(4)
+            .map { candidate ->
+                TurnCandidateSnapshot(
+                    discard = candidate.discard,
+                    shantenAfter = candidate.shantenAfter,
+                    ukeire = candidate.ukeire,
+                    danger = dangerByDiscard[candidate.discard] ?: 0.0,
+                    improvingTiles = candidate.improvingTiles.take(12),
+                )
+            }
 
         val opponentPressure = when {
             frame.riichiSeats.isNotEmpty() && frame.turn >= 12 -> 0.95
@@ -64,6 +78,16 @@ class FinalPaipuAnalyzer(
             shantenAfter = chosen.shantenAfter.toDouble(),
             roundLabel = frame.roundLabel,
             honba = frame.honba,
+            contextSnapshot = TurnContextSnapshot(
+                hand = frame.hand,
+                drawnTile = frame.drawnTile,
+                doraIndicators = frame.doraIndicators,
+                scores = frame.scores,
+                riichiSeats = frame.riichiSeats,
+                visibleDiscards = frame.visibleDiscards,
+                calls = frame.calls,
+                candidates = candidateSnapshots,
+            ),
         )
     }
 

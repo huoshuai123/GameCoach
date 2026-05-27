@@ -1,5 +1,7 @@
 package com.example.mahjongcoach.domain
 
+import com.example.mahjongcoach.data.TurnContextSnapshot
+
 data class Metric(
     val name: String,
     val value: Double,
@@ -17,6 +19,7 @@ data class DecisionPoint(
     val trainingTip: String,
     val roundLabel: String? = null,
     val honba: Int? = null,
+    val contextSnapshot: TurnContextSnapshot? = null,
 ) {
     val priority: Priority
         get() = when {

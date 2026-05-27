@@ -30,6 +30,7 @@ class MahjongRoundEvaluator(
                             trainingTip = "下一局遇到相似局面时，先数向听和有效牌，再决定是否为了看起来安全而牺牲速度。",
                             roundLabel = turn.roundLabel,
                             honba = turn.honba,
+                            contextSnapshot = turn.contextSnapshot,
                         )
                     )
                 }
@@ -47,6 +48,7 @@ class MahjongRoundEvaluator(
                             trainingTip = "练习“一向听或更慢时遇到强压力”的押引阈值：没有足够打点或安全改良时，优先保命。",
                             roundLabel = turn.roundLabel,
                             honba = turn.honba,
+                            contextSnapshot = turn.contextSnapshot,
                         )
                     )
                 }
@@ -64,6 +66,7 @@ class MahjongRoundEvaluator(
                             trainingTip = "当两个候选牌效率接近时，把危险度作为第一排序条件，主动降级明显危险的牌。",
                             roundLabel = turn.roundLabel,
                             honba = turn.honba,
+                            contextSnapshot = turn.contextSnapshot,
                         )
                     )
                 }

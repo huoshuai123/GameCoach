@@ -42,6 +42,8 @@ import com.example.mahjongcoach.data.PaipuDetail
 import com.example.mahjongcoach.data.PaipuHistoryEntry
 import com.example.mahjongcoach.data.ParsedPaipuLink
 import com.example.mahjongcoach.data.SampleRound
+import com.example.mahjongcoach.data.TurnCandidateSnapshot
+import com.example.mahjongcoach.data.TurnContextSnapshot
 import com.example.mahjongcoach.domain.DecisionPoint
 import com.example.mahjongcoach.domain.EvaluationReport
 import com.example.mahjongcoach.domain.Metric
@@ -477,6 +479,10 @@ private fun DecisionCard(
             Text(decision.label, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(4.dp))
             Text("${decision.currentChoice} -> ${decision.recommendedChoice}")
+            decision.contextSnapshot?.let { snapshot ->
+                Spacer(Modifier.height(8.dp))
+                DecisionSnapshotSummary(snapshot)
+            }
         }
     }
 }
@@ -511,8 +517,86 @@ private fun DecisionDetail(decision: DecisionPoint) {
         DetailLine("巡目", decision.turn.toString())
         DetailLine("玩家选择", decision.currentChoice)
         DetailLine("推荐选择", decision.recommendedChoice)
+        decision.contextSnapshot?.let { DecisionSnapshotDetail(it) }
         DetailLine("原因", decision.reason)
         DetailLine("训练建议", decision.trainingTip)
+    }
+}
+
+@Composable
+private fun DecisionSnapshotSummary(snapshot: TurnContextSnapshot) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFF3EFE6), RoundedCornerShape(8.dp))
+            .padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        DetailLine("手牌", snapshot.hand.formatTiles(snapshot.drawnTile))
+        if (snapshot.doraIndicators.isNotEmpty()) {
+            DetailLine("宝牌指示", snapshot.doraIndicators.joinToString(" "))
+        }
+        val pressure = snapshot.pressureText()
+        if (pressure.isNotBlank()) {
+            DetailLine("场况", pressure)
+        }
+    }
+}
+
+@Composable
+private fun DecisionSnapshotDetail(snapshot: TurnContextSnapshot) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        DetailLine("当时手牌", snapshot.hand.formatTiles(snapshot.drawnTile))
+        if (snapshot.scores.isNotEmpty()) {
+            DetailLine("点数", snapshot.scores.mapIndexed { seat, score -> "${seat.seatLabel()} $score" }.joinToString(" / "))
+        }
+        if (snapshot.doraIndicators.isNotEmpty()) {
+            DetailLine("宝牌指示", snapshot.doraIndicators.joinToString(" "))
+        }
+        val pressure = snapshot.pressureText()
+        if (pressure.isNotBlank()) {
+            DetailLine("场况压力", pressure)
+        }
+        val discards = snapshot.visibleDiscards.formatSeatTiles()
+        if (discards.isNotBlank()) {
+            DetailLine("弃牌河", discards)
+        }
+        val calls = snapshot.calls.formatCalls()
+        if (calls.isNotBlank()) {
+            DetailLine("副露", calls)
+        }
+        if (snapshot.candidates.isNotEmpty()) {
+            Text("候选弃牌", fontWeight = FontWeight.Bold)
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                snapshot.candidates.forEach { candidate ->
+                    CandidateLine(candidate)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CandidateLine(candidate: TurnCandidateSnapshot) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFF7F4EE), RoundedCornerShape(8.dp))
+            .padding(10.dp),
+    ) {
+        Text("打 ${candidate.discard}", fontWeight = FontWeight.Bold)
+        Text(
+            "向听 ${candidate.shantenAfter} · 有效牌 ${candidate.ukeire} · 危险度 ${String.format("%.2f", candidate.danger)}",
+            style = MaterialTheme.typography.caption,
+            color = Color(0xFF5A625F),
+        )
+        if (candidate.improvingTiles.isNotEmpty()) {
+            Text(
+                "改良 ${candidate.improvingTiles.joinToString(" ")}",
+                style = MaterialTheme.typography.caption,
+                color = Color(0xFF5A625F),
+            )
+        }
     }
 }
 
@@ -530,4 +614,49 @@ private fun DecisionPoint.roundContextText(): String {
         honba?.let { "${it}本场" },
         "第 ${turn} 巡",
     ).joinToString(" · ")
+}
+
+private fun List<String>.formatTiles(drawnTile: String?): String {
+    val handText = joinToString(" ")
+    return if (drawnTile.isNullOrBlank()) handText else "$handText + $drawnTile"
+}
+
+private fun TurnContextSnapshot.pressureText(): String {
+    val parts = buildList {
+        if (riichiSeats.isNotEmpty()) {
+            add("立直 ${riichiSeats.sorted().joinToString("、") { it.seatLabel() }}")
+        }
+        val calledSeats = calls.filterValues { it.isNotEmpty() }.keys.sorted()
+        if (calledSeats.isNotEmpty()) {
+            add("副露 ${calledSeats.joinToString("、") { it.seatLabel() }}")
+        }
+    }
+    return parts.joinToString("；")
+}
+
+private fun Map<Int, List<String>>.formatSeatTiles(): String {
+    return entries
+        .sortedBy { it.key }
+        .filter { it.value.isNotEmpty() }
+        .joinToString(" / ") { (seat, tiles) -> "${seat.seatLabel()} ${tiles.joinToString(" ")}" }
+}
+
+private fun Map<Int, List<List<String>>>.formatCalls(): String {
+    return entries
+        .sortedBy { it.key }
+        .filter { it.value.isNotEmpty() }
+        .joinToString(" / ") { (seat, melds) ->
+            val meldText = melds.joinToString(" | ") { it.joinToString(" ") }
+            "${seat.seatLabel()} $meldText"
+        }
+}
+
+private fun Int.seatLabel(): String {
+    return when (this) {
+        0 -> "东家"
+        1 -> "南家"
+        2 -> "西家"
+        3 -> "北家"
+        else -> "${this}号位"
+    }
 }

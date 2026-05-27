@@ -31,4 +31,24 @@ data class MahjongTurn(
     val shantenAfter: Double,
     val roundLabel: String? = null,
     val honba: Int? = null,
+    val contextSnapshot: TurnContextSnapshot? = null,
+)
+
+data class TurnContextSnapshot(
+    val hand: List<String>,
+    val drawnTile: String?,
+    val doraIndicators: List<String>,
+    val scores: List<Int>,
+    val riichiSeats: Set<Int>,
+    val visibleDiscards: Map<Int, List<String>>,
+    val calls: Map<Int, List<List<String>>>,
+    val candidates: List<TurnCandidateSnapshot>,
+)
+
+data class TurnCandidateSnapshot(
+    val discard: String,
+    val shantenAfter: Int,
+    val ukeire: Int,
+    val danger: Double,
+    val improvingTiles: List<String>,
 )
