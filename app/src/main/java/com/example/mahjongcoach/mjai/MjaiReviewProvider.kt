@@ -104,20 +104,23 @@ class MjaiReviewProvider(
         }
 
         var latestResponse: JSONObject? = null
-        batches(context.events).forEach { batch ->
+        actions(context.events).forEach { actionRequest ->
             val response = client.post(
-                path = "/mjai/batch",
+                path = "/mjai/act",
                 bearerToken = token,
-                body = batch.toString(),
+                body = actionRequest.toString(),
             )
             if (response.code == 429) return context.unavailable(MjaiAssessmentStatus.QuotaExceeded)
             if (response.code == 401) {
-                logger.warn("MJAI /mjai/batch returned 401; cached session will be cleared. body=${response.body.truncatedForLog()}")
+                logger.warn("MJAI /mjai/act returned 401; cached session will be cleared. body=${response.body.truncatedForLog()}")
                 trialSessionProvider.clearCachedSession()
                 return context.unavailable(MjaiAssessmentStatus.TrialUnavailable)
             }
             if (response.code !in 200..299) {
-                logger.warn("MJAI /mjai/batch failed: HTTP ${response.code}, body=${response.body.truncatedForLog()}")
+                logger.warn(
+                    "MJAI /mjai/act failed at seq=${actionRequest.optInt("seq", -1)}: " +
+                        "HTTP ${response.code}, body=${response.body.truncatedForLog()}",
+                )
                 return context.unavailable(MjaiAssessmentStatus.ProtocolError)
             }
             latestResponse = parseActionResponse(response.body) ?: latestResponse
@@ -145,29 +148,21 @@ class MjaiReviewProvider(
         )
     }
 
-    private fun batches(events: JSONArray): List<JSONArray> {
-        val result = mutableListOf<JSONArray>()
-        var current = JSONArray()
+    private fun actions(events: JSONArray): List<JSONObject> {
+        val result = mutableListOf<JSONObject>()
         for (index in 0 until events.length()) {
-            val event = JSONObject()
+            result += JSONObject()
                 .put("seq", index)
                 .put("data", events.getJSONObject(index))
-            val next = JSONArray(current.toString())
-            next.put(event)
-            if (next.toString().toByteArray(Charsets.UTF_8).size > MjaiConstants.MaxBatchBodyBytes && current.length() > 0) {
-                result += current
-                current = JSONArray().put(event)
-            } else {
-                current = next
-            }
         }
-        if (current.length() > 0) result += current
         return result
     }
 
     private fun parseActionResponse(body: String): JSONObject? {
         val json = JSONObject(body)
-        json.optJSONObject("act")?.let { return it }
+        json.optJSONObject("act")?.let { action ->
+            if (action.optString("type") == "dahai") return action
+        }
         val responses = json.optJSONArray("responses")
         if (responses != null) {
             for (index in responses.length() - 1 downTo 0) {

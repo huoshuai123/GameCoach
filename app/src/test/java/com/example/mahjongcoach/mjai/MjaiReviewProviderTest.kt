@@ -23,15 +23,16 @@ class MjaiReviewProviderTest {
             MjaiHttpResponse(200, """{"id":"trial-token"}"""),
             MjaiHttpResponse(200, """{"models":["mini"],"permit":["mini"]}"""),
             MjaiHttpResponse(200, """{"status":"ok"}"""),
+            MjaiHttpResponse(200, """{"act":{"type":"none"}}"""),
             MjaiHttpResponse(200, """{"act":{"type":"dahai","pai":"1m","meta":{"q_values":{"1m":0.72,"9p":0.12}}}}"""),
             MjaiHttpResponse(200, """{"status":"ok"}"""),
         )
 
         val result = MjaiReviewProvider(client = client).assess(samplePaipu(), sampleReport())
 
-        assertEquals(listOf("/user/trial", "/mjai/list", "/mjai/start", "/mjai/batch", "/mjai/stop"), client.paths)
+        assertEquals(listOf("/user/trial", "/mjai/list", "/mjai/start", "/mjai/act", "/mjai/act", "/mjai/stop"), client.paths)
         assertTrue(client.bodies[2].contains(""""model":"mini""""))
-        assertTrue(client.bodies[3].trim().startsWith("["))
+        assertTrue(client.bodies[3].trim().startsWith("{"))
         assertTrue(client.bodies[3].contains(""""seq":0"""))
         assertTrue(client.bodies[3].contains(""""data""""))
         assertTrue(client.bodies[3].contains(""""type":"start_kyoku""""))
@@ -47,6 +48,7 @@ class MjaiReviewProviderTest {
             MjaiHttpResponse(200, """{"id":"trial-token"}"""),
             MjaiHttpResponse(200, """{"models":["finetuned-s1"],"permit":["finetuned-s1"]}"""),
             MjaiHttpResponse(200, """{"status":"ok"}"""),
+            MjaiHttpResponse(200, """{"act":{"type":"none"}}"""),
             MjaiHttpResponse(200, """{"act":{"type":"dahai","pai":"1m","meta":{"q_values":{"1m":0.72,"9p":0.12}}}}"""),
             MjaiHttpResponse(200, """{"status":"ok"}"""),
         )
@@ -77,6 +79,7 @@ class MjaiReviewProviderTest {
             MjaiHttpResponse(200, """{"id":"fresh-token"}"""),
             MjaiHttpResponse(200, """{"models":["mini"],"permit":["mini"]}"""),
             MjaiHttpResponse(200, """{"status":"ok"}"""),
+            MjaiHttpResponse(200, """{"act":{"type":"none"}}"""),
             MjaiHttpResponse(200, """{"act":{"type":"dahai","pai":"1m","meta":{"q_values":{"1m":0.72,"9p":0.12}}}}"""),
             MjaiHttpResponse(200, """{"status":"ok"}"""),
         )
@@ -92,7 +95,7 @@ class MjaiReviewProviderTest {
 
         assertEquals(MjaiAssessmentStatus.Success, result.single().status)
         assertEquals("fresh-token", store.token)
-        assertEquals(listOf("/mjai/list", "/mjai/start", "/user/trial", "/mjai/list", "/mjai/start", "/mjai/batch", "/mjai/stop"), client.paths)
+        assertEquals(listOf("/mjai/list", "/mjai/start", "/user/trial", "/mjai/list", "/mjai/start", "/mjai/act", "/mjai/act", "/mjai/stop"), client.paths)
     }
 
     private fun sampleReport(): EvaluationReport {
