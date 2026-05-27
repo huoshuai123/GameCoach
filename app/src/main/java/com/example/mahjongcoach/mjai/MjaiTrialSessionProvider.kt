@@ -7,12 +7,17 @@ class MjaiTrialSessionProvider(
 ) {
     fun fetchTrialSession(): Result<String> {
         return runCatching {
-            val response = client.post("/user/trial", bearerToken = null, body = "{}")
+            val response = client.post(
+                "/user/trial",
+                bearerToken = null,
+                body = JSONObject().put("code", MjaiConstants.TrialCode).toString(),
+            )
             if (response.code !in 200..299) {
                 error("MJAI trial session failed with HTTP ${response.code}")
             }
             val json = JSONObject(response.body)
-            val token = json.optString("token")
+            val token = json.optString("id")
+                .ifBlank { json.optString("token") }
                 .ifBlank { json.optString("session_token") }
                 .ifBlank { json.optString("sessionToken") }
             if (token.isBlank()) {

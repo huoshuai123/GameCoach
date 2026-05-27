@@ -4,6 +4,7 @@ import org.json.JSONArray
 
 object MjaiConstants {
     const val BaseUrl = "https://mjai.7xcnnw11phu.eu.org"
+    const val TrialCode = "FREE_TRIAL_SPONSORED_BY_MJAPI_DiscordID_9ns4esyx"
     const val DefaultModel = "mini"
     const val MaxDecisionPoints = 5
     const val TimeoutMillis = 10000

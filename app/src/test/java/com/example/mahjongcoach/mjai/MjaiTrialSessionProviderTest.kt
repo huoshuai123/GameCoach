@@ -8,7 +8,7 @@ class MjaiTrialSessionProviderTest {
     @Test
     fun fetchTrialSession_returnsTokenFromTrialEndpoint() {
         val client = RecordingMjaiHttpClient(
-            MjaiHttpResponse(200, """{"token":"trial-token"}"""),
+            MjaiHttpResponse(200, """{"id":"trial-token"}"""),
         )
 
         val result = MjaiTrialSessionProvider(client).fetchTrialSession()
@@ -16,6 +16,7 @@ class MjaiTrialSessionProviderTest {
         assertTrue(result.isSuccess)
         assertEquals("trial-token", result.getOrNull())
         assertEquals(listOf("/user/trial"), client.paths)
+        assertTrue(client.bodies.single().contains("FREE_TRIAL_SPONSORED_BY_MJAPI_DiscordID_9ns4esyx"))
     }
 
     @Test
@@ -42,4 +43,3 @@ class MjaiTrialSessionProviderTest {
         assertTrue(limited.isFailure)
     }
 }
-
