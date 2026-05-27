@@ -151,14 +151,17 @@ class MjaiReviewProvider(
     private fun actions(events: JSONArray): List<JSONObject> {
         val result = mutableListOf<JSONObject>()
         for (index in 0 until events.length()) {
+            val event = JSONObject(events.getJSONObject(index).toString())
+                .put("can_act", index == events.length() - 1)
             result += JSONObject()
                 .put("seq", index + 1)
-                .put("data", events.getJSONObject(index))
+                .put("data", event)
         }
         return result
     }
 
     private fun parseActionResponse(body: String): JSONObject? {
+        if (body.isBlank()) return null
         val json = JSONObject(body)
         json.optJSONObject("act")?.let { action ->
             if (action.optString("type") == "dahai") return action

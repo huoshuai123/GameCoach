@@ -36,6 +36,8 @@ class MjaiReviewProviderTest {
         assertTrue(client.bodies[3].contains(""""seq":1"""))
         assertTrue(client.bodies[3].contains(""""data""""))
         assertTrue(client.bodies[3].contains(""""type":"start_kyoku""""))
+        assertTrue(client.bodies[3].contains(""""can_act":false"""))
+        assertTrue(client.bodies[4].contains(""""can_act":true"""))
         assertEquals(MjaiAssessmentStatus.Success, result.single().status)
         assertEquals("1m", result.single().recommendedDiscard)
         assertEquals(0.72, result.single().recommendedWeight ?: 0.0, 0.001)
@@ -58,6 +60,24 @@ class MjaiReviewProviderTest {
         assertEquals(MjaiAssessmentStatus.Success, result.single().status)
         assertEquals("finetuned-s1", result.single().model)
         assertTrue(client.bodies[2].contains(""""model":"finetuned-s1""""))
+    }
+
+    @Test
+    fun assess_acceptsEmptyResponseForStateUpdateEvents() = runBlocking {
+        val client = RecordingMjaiHttpClient(
+            MjaiHttpResponse(200, """{"id":"trial-token"}"""),
+            MjaiHttpResponse(200, """{"models":["mini"],"permit":["mini"]}"""),
+            MjaiHttpResponse(200, """{"status":"ok"}"""),
+            MjaiHttpResponse(200, ""),
+            MjaiHttpResponse(200, """{"act":{"type":"dahai","pai":"1m","meta":{"q_values":{"1m":0.72,"9p":0.12}}}}"""),
+            MjaiHttpResponse(200, """{"status":"ok"}"""),
+        )
+
+        val result = MjaiReviewProvider(client = client).assess(samplePaipu(), sampleReport())
+
+        assertEquals(MjaiAssessmentStatus.Success, result.single().status)
+        assertTrue(client.bodies[3].contains(""""can_act":false"""))
+        assertTrue(client.bodies[4].contains(""""can_act":true"""))
     }
 
     @Test
