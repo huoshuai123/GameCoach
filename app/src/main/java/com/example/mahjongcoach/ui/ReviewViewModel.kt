@@ -87,21 +87,23 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
                 return@launch
             }
 
-            mutableState.value = try {
-                val report = evaluator.evaluate(analyzer.analyze(record.paipu))
-                val sample = SampleRound(
-                    id = "history-${record.entry.uuid}",
-                    title = report.situation.title,
-                    description = "从本地历史记录读取的复盘报告。",
-                    focus = "历史牌谱分析",
-                    assetName = "",
-                )
-                ReviewUiState.Ready(
-                    samples = listOf(sample),
-                    selectedSample = sample,
-                    report = report,
-                )
-            } catch (error: Exception) {
+            mutableState.value = runCatching {
+                withContext(Dispatchers.Default) {
+                    val report = evaluator.evaluate(analyzer.analyze(record.paipu))
+                    val sample = SampleRound(
+                        id = "history-${record.entry.uuid}",
+                        title = report.situation.title,
+                        description = "从本地历史记录读取的复盘报告。",
+                        focus = "历史牌谱分析",
+                        assetName = "",
+                    )
+                    ReviewUiState.Ready(
+                        samples = listOf(sample),
+                        selectedSample = sample,
+                        report = report,
+                    )
+                }
+            }.getOrElse { error ->
                 ReviewUiState.Error(error.message ?: "无法读取本地历史牌谱。")
             }
         }
