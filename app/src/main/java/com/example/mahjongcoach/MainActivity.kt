@@ -3,9 +3,12 @@ package com.example.mahjongcoach
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -34,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mahjongcoach.data.FinalPaipuDownload
@@ -481,7 +486,7 @@ private fun DecisionCard(
             Text("${decision.currentChoice} -> ${decision.recommendedChoice}")
             decision.contextSnapshot?.let { snapshot ->
                 Spacer(Modifier.height(8.dp))
-                DecisionSnapshotSummary(snapshot)
+                DecisionSnapshotSummary(decision, snapshot)
             }
         }
     }
@@ -517,14 +522,14 @@ private fun DecisionDetail(decision: DecisionPoint) {
         DetailLine("巡目", decision.turn.toString())
         DetailLine("玩家选择", decision.currentChoice)
         DetailLine("推荐选择", decision.recommendedChoice)
-        decision.contextSnapshot?.let { DecisionSnapshotDetail(it) }
+        decision.contextSnapshot?.let { DecisionSnapshotDetail(decision, it) }
         DetailLine("原因", decision.reason)
         DetailLine("训练建议", decision.trainingTip)
     }
 }
 
 @Composable
-private fun DecisionSnapshotSummary(snapshot: TurnContextSnapshot) {
+private fun DecisionSnapshotSummary(decision: DecisionPoint, snapshot: TurnContextSnapshot) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -532,9 +537,15 @@ private fun DecisionSnapshotSummary(snapshot: TurnContextSnapshot) {
             .padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        DetailLine("手牌", snapshot.hand.formatTiles(snapshot.drawnTile))
+        Text("手牌", style = MaterialTheme.typography.caption, color = Color(0xFF5A625F))
+        TileWall(
+            tiles = snapshot.hand,
+            drawnTile = snapshot.drawnTile,
+            highlightedTiles = decision.choiceTiles(),
+        )
         if (snapshot.doraIndicators.isNotEmpty()) {
-            DetailLine("宝牌指示", snapshot.doraIndicators.joinToString(" "))
+            Text("宝牌指示", style = MaterialTheme.typography.caption, color = Color(0xFF5A625F))
+            TileRows(snapshot.doraIndicators.sortedTiles())
         }
         val pressure = snapshot.pressureText()
         if (pressure.isNotBlank()) {
@@ -544,14 +555,20 @@ private fun DecisionSnapshotSummary(snapshot: TurnContextSnapshot) {
 }
 
 @Composable
-private fun DecisionSnapshotDetail(snapshot: TurnContextSnapshot) {
+private fun DecisionSnapshotDetail(decision: DecisionPoint, snapshot: TurnContextSnapshot) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        DetailLine("当时手牌", snapshot.hand.formatTiles(snapshot.drawnTile))
+        Text("当时手牌", fontWeight = FontWeight.Bold)
+        TileWall(
+            tiles = snapshot.hand,
+            drawnTile = snapshot.drawnTile,
+            highlightedTiles = decision.choiceTiles(),
+        )
         if (snapshot.scores.isNotEmpty()) {
             DetailLine("点数", snapshot.scores.mapIndexed { seat, score -> "${seat.seatLabel()} $score" }.joinToString(" / "))
         }
         if (snapshot.doraIndicators.isNotEmpty()) {
-            DetailLine("宝牌指示", snapshot.doraIndicators.joinToString(" "))
+            Text("宝牌指示", fontWeight = FontWeight.Bold)
+            TileRows(snapshot.doraIndicators.sortedTiles())
         }
         val pressure = snapshot.pressureText()
         if (pressure.isNotBlank()) {
@@ -569,7 +586,7 @@ private fun DecisionSnapshotDetail(snapshot: TurnContextSnapshot) {
             Text("候选弃牌", fontWeight = FontWeight.Bold)
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 snapshot.candidates.forEach { candidate ->
-                    CandidateLine(candidate)
+                    CandidateLine(decision, candidate)
                 }
             }
         }
@@ -577,26 +594,83 @@ private fun DecisionSnapshotDetail(snapshot: TurnContextSnapshot) {
 }
 
 @Composable
-private fun CandidateLine(candidate: TurnCandidateSnapshot) {
+private fun CandidateLine(decision: DecisionPoint, candidate: TurnCandidateSnapshot) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color(0xFFF7F4EE), RoundedCornerShape(8.dp))
             .padding(10.dp),
     ) {
-        Text("打 ${candidate.discard}", fontWeight = FontWeight.Bold)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("打", fontWeight = FontWeight.Bold)
+            TileBox(
+                tile = candidate.discard,
+                highlighted = decision.choiceTiles().contains(candidate.discard.normalizedTileKey()),
+            )
+        }
         Text(
             "向听 ${candidate.shantenAfter} · 有效牌 ${candidate.ukeire} · 危险度 ${String.format("%.2f", candidate.danger)}",
             style = MaterialTheme.typography.caption,
             color = Color(0xFF5A625F),
         )
         if (candidate.improvingTiles.isNotEmpty()) {
-            Text(
-                "改良 ${candidate.improvingTiles.joinToString(" ")}",
-                style = MaterialTheme.typography.caption,
-                color = Color(0xFF5A625F),
-            )
+            Text("改良", style = MaterialTheme.typography.caption, color = Color(0xFF5A625F))
+            TileRows(candidate.improvingTiles.sortedTiles())
         }
+    }
+}
+
+@Composable
+private fun TileWall(
+    tiles: List<String>,
+    drawnTile: String?,
+    highlightedTiles: Set<String>,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        TileRows(tiles.sortedTiles(), highlightedTiles)
+        drawnTile?.takeIf { it.isNotBlank() }?.let {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("+", color = Color(0xFF5A625F), fontWeight = FontWeight.Bold)
+                TileBox(tile = it, highlighted = highlightedTiles.contains(it.normalizedTileKey()))
+            }
+        }
+    }
+}
+
+@Composable
+private fun TileRows(
+    tiles: List<String>,
+    highlightedTiles: Set<String> = emptySet(),
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        tiles.chunked(8).forEach { rowTiles ->
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                rowTiles.forEach { tile ->
+                    TileBox(tile = tile, highlighted = highlightedTiles.contains(tile.normalizedTileKey()))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TileBox(tile: String, highlighted: Boolean = false) {
+    val borderColor = if (highlighted) Color(0xFFC7772A) else Color(0xFFB8B0A3)
+    val background = if (highlighted) Color(0xFFFFE6BD) else Color(0xFFFFFCF7)
+    Box(
+        modifier = Modifier
+            .size(width = 34.dp, height = 42.dp)
+            .background(background, RoundedCornerShape(4.dp))
+            .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(4.dp)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            tile,
+            textAlign = TextAlign.Center,
+            fontWeight = if (highlighted) FontWeight.Bold else FontWeight.Normal,
+            color = tileTextColor(tile),
+            style = MaterialTheme.typography.caption,
+        )
     }
 }
 
@@ -614,11 +688,6 @@ private fun DecisionPoint.roundContextText(): String {
         honba?.let { "${it}本场" },
         "第 ${turn} 巡",
     ).joinToString(" · ")
-}
-
-private fun List<String>.formatTiles(drawnTile: String?): String {
-    val handText = joinToString(" ")
-    return if (drawnTile.isNullOrBlank()) handText else "$handText + $drawnTile"
 }
 
 private fun TurnContextSnapshot.pressureText(): String {
@@ -649,6 +718,47 @@ private fun Map<Int, List<List<String>>>.formatCalls(): String {
             val meldText = melds.joinToString(" | ") { it.joinToString(" ") }
             "${seat.seatLabel()} $meldText"
         }
+}
+
+private fun DecisionPoint.choiceTiles(): Set<String> {
+    return Regex("""[0-9][mpsz]""")
+        .findAll("$currentChoice $recommendedChoice")
+        .map { it.value.normalizedTileKey() }
+        .toSet()
+}
+
+private fun List<String>.sortedTiles(): List<String> {
+    return sortedWith(compareBy<String> { it.tileSuitOrder() }.thenBy { it.tileNumberOrder() }.thenBy { it })
+}
+
+private fun String.normalizedTileKey(): String {
+    val match = Regex("""[0-9][mpsz]""").find(this) ?: return this
+    return match.value
+}
+
+private fun String.tileSuitOrder(): Int {
+    return when (normalizedTileKey().lastOrNull()) {
+        'm' -> 0
+        'p' -> 1
+        's' -> 2
+        'z' -> 3
+        else -> 4
+    }
+}
+
+private fun String.tileNumberOrder(): Int {
+    val number = normalizedTileKey().firstOrNull()?.digitToIntOrNull() ?: 10
+    return if (number == 0) 5 else number
+}
+
+private fun tileTextColor(tile: String): Color {
+    return when (tile.normalizedTileKey().lastOrNull()) {
+        'm' -> Color(0xFFB33A2B)
+        'p' -> Color(0xFF22665A)
+        's' -> Color(0xFF2B5DA8)
+        'z' -> Color(0xFF4F4A45)
+        else -> Color(0xFF2C2A27)
+    }
 }
 
 private fun Int.seatLabel(): String {
