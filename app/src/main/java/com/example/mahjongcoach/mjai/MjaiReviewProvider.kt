@@ -38,6 +38,10 @@ class MjaiReviewProvider(
                 .toString(),
         )
         if (start.code == 429) return context.unavailable(MjaiAssessmentStatus.QuotaExceeded)
+        if (start.code == 401) {
+            trialSessionProvider.clearCachedSession()
+            return context.unavailable(MjaiAssessmentStatus.TrialUnavailable)
+        }
         if (start.code !in 200..299) return context.unavailable(MjaiAssessmentStatus.ProtocolError)
 
         var latestResponse: JSONObject? = null
@@ -48,6 +52,10 @@ class MjaiReviewProvider(
                 body = batch.toString(),
             )
             if (response.code == 429) return context.unavailable(MjaiAssessmentStatus.QuotaExceeded)
+            if (response.code == 401) {
+                trialSessionProvider.clearCachedSession()
+                return context.unavailable(MjaiAssessmentStatus.TrialUnavailable)
+            }
             if (response.code !in 200..299) return context.unavailable(MjaiAssessmentStatus.ProtocolError)
             latestResponse = parseActionResponse(response.body) ?: latestResponse
         }

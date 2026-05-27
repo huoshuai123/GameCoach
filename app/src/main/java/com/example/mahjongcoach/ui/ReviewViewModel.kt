@@ -13,6 +13,8 @@ import com.example.mahjongcoach.domain.withMjaiAssessments
 import com.example.mahjongcoach.evaluator.FinalPaipuAnalyzer
 import com.example.mahjongcoach.evaluator.MahjongRoundEvaluator
 import com.example.mahjongcoach.mjai.MjaiReviewProvider
+import com.example.mahjongcoach.mjai.MjaiTrialSessionProvider
+import com.example.mahjongcoach.mjai.SharedPreferencesMjaiSessionStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,7 +28,11 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
     private val analyzer = FinalPaipuAnalyzer()
     private val evaluator = MahjongRoundEvaluator()
     private val importPipeline = PaipuImportPipeline()
-    private val mjaiReviewProvider = MjaiReviewProvider()
+    private val mjaiReviewProvider = MjaiReviewProvider(
+        trialSessionProvider = MjaiTrialSessionProvider(
+            sessionStore = SharedPreferencesMjaiSessionStore(application),
+        )
+    )
     private val mutableState = MutableStateFlow<ReviewUiState>(ReviewUiState.Loading)
 
     val state: StateFlow<ReviewUiState> = mutableState.asStateFlow()

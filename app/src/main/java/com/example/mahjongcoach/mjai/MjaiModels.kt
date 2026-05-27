@@ -9,6 +9,7 @@ object MjaiConstants {
     const val MaxDecisionPoints = 5
     const val TimeoutMillis = 10000
     const val MaxBatchBodyBytes = 4000
+    const val SessionTtlMillis = 65 * 60 * 1000L
 }
 
 data class MjaiHttpResponse(

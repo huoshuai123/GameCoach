@@ -50,6 +50,26 @@ class MjaiReviewProviderTest {
         assertEquals(listOf("/user/trial"), client.paths)
     }
 
+    @Test
+    fun assess_clearsCachedSessionWhenStartIsUnauthorized() = runBlocking {
+        val store = FakeMjaiSessionStore("stale-token", Long.MAX_VALUE)
+        val client = RecordingMjaiHttpClient(
+            MjaiHttpResponse(401, """{"error":"operation not permitted"}"""),
+        )
+
+        val result = MjaiReviewProvider(
+            client = client,
+            trialSessionProvider = MjaiTrialSessionProvider(
+                client = client,
+                sessionStore = store,
+                nowMillis = { 1_000L },
+            ),
+        ).assess(samplePaipu(), sampleReport())
+
+        assertEquals(MjaiAssessmentStatus.TrialUnavailable, result.single().status)
+        assertEquals(null, store.token)
+    }
+
     private fun sampleReport(): EvaluationReport {
         val decision = DecisionPoint(
             label = "第 1 巡：牌效率损失",
@@ -94,5 +114,24 @@ class MjaiReviewProviderTest {
                 ),
             ),
         )
+    }
+
+    private class FakeMjaiSessionStore(
+        var token: String? = null,
+        var expiresAtMillis: Long = 0L,
+    ) : MjaiSessionStore {
+        override fun load(): MjaiStoredSession? {
+            return token?.let { MjaiStoredSession(it, expiresAtMillis) }
+        }
+
+        override fun save(session: MjaiStoredSession) {
+            token = session.token
+            expiresAtMillis = session.expiresAtMillis
+        }
+
+        override fun clear() {
+            token = null
+            expiresAtMillis = 0L
+        }
     }
 }
