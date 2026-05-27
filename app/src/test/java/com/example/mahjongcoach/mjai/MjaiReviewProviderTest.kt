@@ -51,10 +51,14 @@ class MjaiReviewProviderTest {
     }
 
     @Test
-    fun assess_clearsCachedSessionWhenStartIsUnauthorized() = runBlocking {
+    fun assess_retriesWithNewTrialSessionWhenCachedSessionIsUnauthorized() = runBlocking {
         val store = FakeMjaiSessionStore("stale-token", Long.MAX_VALUE)
         val client = RecordingMjaiHttpClient(
             MjaiHttpResponse(401, """{"error":"operation not permitted"}"""),
+            MjaiHttpResponse(200, """{"id":"fresh-token"}"""),
+            MjaiHttpResponse(200, """{"status":"ok"}"""),
+            MjaiHttpResponse(200, """{"act":{"type":"dahai","pai":"1m","meta":{"q_values":{"1m":0.72,"9p":0.12}}}}"""),
+            MjaiHttpResponse(200, """{"status":"ok"}"""),
         )
 
         val result = MjaiReviewProvider(
@@ -66,8 +70,9 @@ class MjaiReviewProviderTest {
             ),
         ).assess(samplePaipu(), sampleReport())
 
-        assertEquals(MjaiAssessmentStatus.TrialUnavailable, result.single().status)
-        assertEquals(null, store.token)
+        assertEquals(MjaiAssessmentStatus.Success, result.single().status)
+        assertEquals("fresh-token", store.token)
+        assertEquals(listOf("/mjai/start", "/user/trial", "/mjai/start", "/mjai/batch", "/mjai/stop"), client.paths)
     }
 
     private fun sampleReport(): EvaluationReport {

@@ -9,21 +9,46 @@ class MjaiReviewProvider(
     private val client: MjaiHttpClient = DefaultMjaiHttpClient(),
     private val trialSessionProvider: MjaiTrialSessionProvider = MjaiTrialSessionProvider(client),
     private val converter: FinalPaipuToMjaiConverter = FinalPaipuToMjaiConverter(),
+    private val logger: MjaiLogger = StdoutMjaiLogger,
 ) {
     suspend fun assess(paipu: FinalPaipu, report: EvaluationReport): List<MjaiAssessment> {
         val contexts = converter.contexts(paipu, report.decisionPoints)
         if (contexts.isEmpty()) return emptyList()
+        logger.info("Assessing ${contexts.size} decision context(s) with MJAI.")
 
         val token = trialSessionProvider.fetchTrialSession().getOrElse {
+            logger.warn("Unable to obtain MJAI trial session: ${it.message.orEmpty().truncatedForLog()}")
             return contexts.map { it.unavailable(MjaiAssessmentStatus.TrialUnavailable) }
         }
 
-        return contexts.map { context ->
+        val firstAttempt = contexts.map { context ->
             runCatching {
                 assessContext(context, token)
             }.getOrElse {
                 context.unavailable(MjaiAssessmentStatus.NetworkError)
             }
+        }
+        val retryContexts = contexts.zip(firstAttempt)
+            .filter { (_, assessment) -> assessment.status == MjaiAssessmentStatus.TrialUnavailable }
+            .map { (context, _) -> context }
+        if (retryContexts.isEmpty()) return firstAttempt
+
+        logger.warn("Retrying ${retryContexts.size} MJAI decision context(s) after session invalidation.")
+        val retryToken = trialSessionProvider.fetchTrialSession().getOrElse {
+            logger.warn("Unable to obtain MJAI trial session for retry: ${it.message.orEmpty().truncatedForLog()}")
+            return firstAttempt
+        }
+        val retriedById = retryContexts.associate { context ->
+            val assessment = runCatching {
+                assessContext(context, retryToken)
+            }.getOrElse {
+                context.unavailable(MjaiAssessmentStatus.NetworkError)
+            }
+            context.decisionId to assessment
+        }
+
+        return firstAttempt.map { assessment ->
+            retriedById[assessment.decisionId] ?: assessment
         }
     }
 
@@ -39,10 +64,14 @@ class MjaiReviewProvider(
         )
         if (start.code == 429) return context.unavailable(MjaiAssessmentStatus.QuotaExceeded)
         if (start.code == 401) {
+            logger.warn("MJAI /mjai/start returned 401; cached session will be cleared. body=${start.body.truncatedForLog()}")
             trialSessionProvider.clearCachedSession()
             return context.unavailable(MjaiAssessmentStatus.TrialUnavailable)
         }
-        if (start.code !in 200..299) return context.unavailable(MjaiAssessmentStatus.ProtocolError)
+        if (start.code !in 200..299) {
+            logger.warn("MJAI /mjai/start failed: HTTP ${start.code}, body=${start.body.truncatedForLog()}")
+            return context.unavailable(MjaiAssessmentStatus.ProtocolError)
+        }
 
         var latestResponse: JSONObject? = null
         batches(context.events).forEach { batch ->
@@ -53,10 +82,14 @@ class MjaiReviewProvider(
             )
             if (response.code == 429) return context.unavailable(MjaiAssessmentStatus.QuotaExceeded)
             if (response.code == 401) {
+                logger.warn("MJAI /mjai/batch returned 401; cached session will be cleared. body=${response.body.truncatedForLog()}")
                 trialSessionProvider.clearCachedSession()
                 return context.unavailable(MjaiAssessmentStatus.TrialUnavailable)
             }
-            if (response.code !in 200..299) return context.unavailable(MjaiAssessmentStatus.ProtocolError)
+            if (response.code !in 200..299) {
+                logger.warn("MJAI /mjai/batch failed: HTTP ${response.code}, body=${response.body.truncatedForLog()}")
+                return context.unavailable(MjaiAssessmentStatus.ProtocolError)
+            }
             latestResponse = parseActionResponse(response.body) ?: latestResponse
         }
 
@@ -66,7 +99,10 @@ class MjaiReviewProvider(
             body = "{}",
         )
 
-        val action = latestResponse ?: return context.unavailable(MjaiAssessmentStatus.ProtocolError)
+        val action = latestResponse ?: run {
+            logger.warn("MJAI did not return a dahai action for decision ${context.decisionId}.")
+            return context.unavailable(MjaiAssessmentStatus.ProtocolError)
+        }
         val recommended = action.optString("pai").ifBlank { null }?.fromMjaiTile()
         val weights = action.optJSONObject("meta")?.optJSONObject("q_values")
         return MjaiAssessment(

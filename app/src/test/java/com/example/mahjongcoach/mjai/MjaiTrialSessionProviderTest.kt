@@ -37,6 +37,18 @@ class MjaiTrialSessionProviderTest {
     }
 
     @Test
+    fun fetchTrialSession_logsHttpFailureBody() {
+        val logger = RecordingMjaiLogger()
+
+        MjaiTrialSessionProvider(
+            client = RecordingMjaiHttpClient(MjaiHttpResponse(403, """{"error":"active session exists"}""")),
+            logger = logger,
+        ).fetchTrialSession()
+
+        assertTrue(logger.warnings.any { it.contains("HTTP 403") && it.contains("active session exists") })
+    }
+
+    @Test
     fun fetchTrialSession_reusesPersistedTokenBeforeExpiry() {
         val store = FakeMjaiSessionStore("persisted-token", 10_000L)
         val client = RecordingMjaiHttpClient(
@@ -115,5 +127,18 @@ class MjaiTrialSessionProviderTest {
             token = null
             expiresAtMillis = 0L
         }
+    }
+}
+
+private class RecordingMjaiLogger : MjaiLogger {
+    val infos = mutableListOf<String>()
+    val warnings = mutableListOf<String>()
+
+    override fun info(message: String) {
+        infos += message
+    }
+
+    override fun warn(message: String) {
+        warnings += message
     }
 }
