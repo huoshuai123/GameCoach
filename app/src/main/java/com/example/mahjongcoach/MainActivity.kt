@@ -9,6 +9,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -626,15 +627,8 @@ private fun TileWall(
     drawnTile: String?,
     highlightedTiles: Set<String>,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        TileRows(tiles.sortedTiles(), highlightedTiles)
-        drawnTile?.takeIf { it.isNotBlank() }?.let {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("+", color = Color(0xFF5A625F), fontWeight = FontWeight.Bold)
-                TileBox(tile = it, highlighted = highlightedTiles.contains(it.normalizedTileKey()))
-            }
-        }
-    }
+    val allTiles = tiles + listOfNotNull(drawnTile?.takeIf { it.isNotBlank() })
+    TileRows(allTiles.sortedTiles(), highlightedTiles)
 }
 
 @Composable
@@ -642,11 +636,33 @@ private fun TileRows(
     tiles: List<String>,
     highlightedTiles: Set<String> = emptySet(),
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        tiles.chunked(8).forEach { rowTiles ->
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                rowTiles.forEach { tile ->
-                    TileBox(tile = tile, highlighted = highlightedTiles.contains(tile.normalizedTileKey()))
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val gap = 3.dp
+        val tileWidth = when {
+            maxWidth < 240.dp -> 26.dp
+            maxWidth < 300.dp -> 30.dp
+            else -> 34.dp
+        }
+        val tileHeight = when {
+            maxWidth < 240.dp -> 34.dp
+            maxWidth < 300.dp -> 38.dp
+            else -> 42.dp
+        }
+        val columns = ((maxWidth.value + gap.value) / (tileWidth.value + gap.value))
+            .toInt()
+            .coerceAtLeast(1)
+
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            tiles.chunked(columns).forEach { rowTiles ->
+                Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
+                    rowTiles.forEach { tile ->
+                        TileBox(
+                            tile = tile,
+                            highlighted = highlightedTiles.contains(tile.normalizedTileKey()),
+                            width = tileWidth,
+                            height = tileHeight,
+                        )
+                    }
                 }
             }
         }
@@ -654,12 +670,17 @@ private fun TileRows(
 }
 
 @Composable
-private fun TileBox(tile: String, highlighted: Boolean = false) {
+private fun TileBox(
+    tile: String,
+    highlighted: Boolean = false,
+    width: androidx.compose.ui.unit.Dp = 34.dp,
+    height: androidx.compose.ui.unit.Dp = 42.dp,
+) {
     val borderColor = if (highlighted) Color(0xFFC7772A) else Color(0xFFB8B0A3)
     val background = if (highlighted) Color(0xFFFFE6BD) else Color(0xFFFFFCF7)
     Box(
         modifier = Modifier
-            .size(width = 34.dp, height = 42.dp)
+            .size(width = width, height = height)
             .background(background, RoundedCornerShape(4.dp))
             .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(4.dp)),
         contentAlignment = Alignment.Center,
