@@ -20,6 +20,10 @@ data class DecisionPoint(
     val roundLabel: String? = null,
     val honba: Int? = null,
     val contextSnapshot: TurnContextSnapshot? = null,
+    val aiSource: String? = null,
+    val aiRecommendedChoice: String? = null,
+    val aiConfidence: Double? = null,
+    val aiStatus: String? = null,
 ) {
     val priority: Priority
         get() = when {
@@ -27,6 +31,14 @@ data class DecisionPoint(
             severity >= 5 -> Priority.Medium
             else -> Priority.Low
         }
+
+    val aiDecisionId: String
+        get() = listOf(
+            roundLabel.orEmpty(),
+            honba?.toString().orEmpty(),
+            turn.toString(),
+            currentChoice,
+        ).joinToString("|")
 }
 
 data class Situation(

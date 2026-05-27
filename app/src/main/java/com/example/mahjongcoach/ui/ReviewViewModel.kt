@@ -8,8 +8,11 @@ import com.example.mahjongcoach.data.PaipuImportPipeline
 import com.example.mahjongcoach.data.SampleRound
 import com.example.mahjongcoach.data.SampleRoundRepository
 import com.example.mahjongcoach.domain.DecisionPoint
+import com.example.mahjongcoach.domain.EvaluationReport
+import com.example.mahjongcoach.domain.withMjaiAssessments
 import com.example.mahjongcoach.evaluator.FinalPaipuAnalyzer
 import com.example.mahjongcoach.evaluator.MahjongRoundEvaluator
+import com.example.mahjongcoach.mjai.MjaiReviewProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,6 +26,7 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
     private val analyzer = FinalPaipuAnalyzer()
     private val evaluator = MahjongRoundEvaluator()
     private val importPipeline = PaipuImportPipeline()
+    private val mjaiReviewProvider = MjaiReviewProvider()
     private val mutableState = MutableStateFlow<ReviewUiState>(ReviewUiState.Loading)
 
     val state: StateFlow<ReviewUiState> = mutableState.asStateFlow()
@@ -63,6 +67,9 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
                     result.finalPaipuDownload.paipu?.let { historyRepository.save(it) }
                 }
                 mutableState.value = ready
+                result.finalPaipuDownload.paipu?.let { paipu ->
+                    enhanceReportWithMjai(paipu, ready.report)
+                }
                 return@launch
             }
             val latest = mutableState.value as? ReviewUiState.LinkEntry ?: return@launch
@@ -106,6 +113,9 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
             }.getOrElse { error ->
                 ReviewUiState.Error(error.message ?: "无法读取本地历史牌谱。")
             }
+            (mutableState.value as? ReviewUiState.Ready)?.let { ready ->
+                enhanceReportWithMjai(record.paipu, ready.report)
+            }
         }
     }
 
@@ -127,6 +137,27 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         val current = mutableState.value
         if (current is ReviewUiState.Ready) {
             mutableState.value = current.copy(selectedDecision = decision)
+        }
+    }
+
+    private fun enhanceReportWithMjai(
+        paipu: com.example.mahjongcoach.data.FinalPaipu,
+        ruleReport: EvaluationReport,
+    ) {
+        viewModelScope.launch {
+            val enhanced = withContext(Dispatchers.IO) {
+                val assessments = mjaiReviewProvider.assess(paipu, ruleReport)
+                ruleReport.withMjaiAssessments(assessments)
+            }
+            val current = mutableState.value as? ReviewUiState.Ready ?: return@launch
+            if (current.report.situation.title != ruleReport.situation.title) return@launch
+
+            val selectedId = current.selectedDecision?.aiDecisionId
+            mutableState.value = current.copy(
+                report = enhanced,
+                selectedDecision = enhanced.decisionPoints.firstOrNull { it.aiDecisionId == selectedId }
+                    ?: enhanced.decisionPoints.firstOrNull(),
+            )
         }
     }
 }

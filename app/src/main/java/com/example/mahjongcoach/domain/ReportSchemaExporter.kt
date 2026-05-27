@@ -28,6 +28,10 @@ object ReportSchemaExporter {
                     "priority" to it.priority.name.lowercase(),
                     "round" to (it.roundLabel ?: ""),
                     "honba" to (it.honba ?: 0),
+                    "ai_source" to (it.aiSource ?: ""),
+                    "ai_recommendation" to (it.aiRecommendedChoice ?: ""),
+                    "ai_confidence" to (it.aiConfidence ?: 0.0),
+                    "ai_status" to (it.aiStatus ?: ""),
                 )
             },
             "training_focus" to mapOf(

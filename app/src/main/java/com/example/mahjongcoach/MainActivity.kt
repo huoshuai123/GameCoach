@@ -485,6 +485,10 @@ private fun DecisionCard(
             Text(decision.label, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(4.dp))
             Text("${decision.currentChoice} -> ${decision.recommendedChoice}")
+            decision.aiRecommendedChoice?.let {
+                Spacer(Modifier.height(4.dp))
+                Text(it, style = MaterialTheme.typography.caption, color = Color(0xFF22665A))
+            }
             decision.contextSnapshot?.let { snapshot ->
                 Spacer(Modifier.height(8.dp))
                 DecisionSnapshotSummary(decision, snapshot)
@@ -523,6 +527,10 @@ private fun DecisionDetail(decision: DecisionPoint) {
         DetailLine("巡目", decision.turn.toString())
         DetailLine("玩家选择", decision.currentChoice)
         DetailLine("推荐选择", decision.recommendedChoice)
+        decision.aiSource?.let { DetailLine("AI 来源", it) }
+        decision.aiRecommendedChoice?.let { DetailLine("AI 推荐", it) }
+        decision.aiConfidence?.let { DetailLine("AI 推荐强度", String.format("%.2f", it)) }
+        decision.aiStatus?.let { DetailLine("AI 状态", it) }
         decision.contextSnapshot?.let { DecisionSnapshotDetail(decision, it) }
         DetailLine("原因", decision.reason)
         DetailLine("训练建议", decision.trainingTip)
