@@ -133,7 +133,16 @@ class FinalPaipuToMjaiConverter(
             'm' -> "m"
             'p' -> "p"
             's' -> "s"
-            else -> "z"
+            else -> return when (tile.rank) {
+                1 -> "E"
+                2 -> "S"
+                3 -> "W"
+                4 -> "N"
+                5 -> "P"
+                6 -> "F"
+                7 -> "C"
+                else -> this
+            }
         }
         return "${tile.rank}$suit${if (tile.isRedFive) "r" else ""}"
     }

@@ -20,9 +20,9 @@ class MjaiReviewProviderTest {
     @Test
     fun assess_usesTrialTokenMiniModelAndStopsSession() = runBlocking {
         val client = RecordingMjaiHttpClient(
-            MjaiHttpResponse(200, """{"token":"trial-token"}"""),
+            MjaiHttpResponse(200, """{"id":"trial-token"}"""),
             MjaiHttpResponse(200, """{"status":"ok"}"""),
-            MjaiHttpResponse(200, """{"responses":[{"type":"dahai","pai":"1m","meta":{"q_values":{"1m":0.72,"9p":0.12}}}]}"""),
+            MjaiHttpResponse(200, """{"act":{"type":"dahai","pai":"1m","meta":{"q_values":{"1m":0.72,"9p":0.12}}}}"""),
             MjaiHttpResponse(200, """{"status":"ok"}"""),
         )
 
@@ -30,6 +30,10 @@ class MjaiReviewProviderTest {
 
         assertEquals(listOf("/user/trial", "/mjai/start", "/mjai/batch", "/mjai/stop"), client.paths)
         assertTrue(client.bodies[1].contains(""""model":"mini""""))
+        assertTrue(client.bodies[2].trim().startsWith("["))
+        assertTrue(client.bodies[2].contains(""""seq":0"""))
+        assertTrue(client.bodies[2].contains(""""data""""))
+        assertTrue(client.bodies[2].contains(""""type":"start_kyoku""""))
         assertEquals(MjaiAssessmentStatus.Success, result.single().status)
         assertEquals("1m", result.single().recommendedDiscard)
         assertEquals(0.72, result.single().recommendedWeight ?: 0.0, 0.001)
@@ -92,4 +96,3 @@ class MjaiReviewProviderTest {
         )
     }
 }
-

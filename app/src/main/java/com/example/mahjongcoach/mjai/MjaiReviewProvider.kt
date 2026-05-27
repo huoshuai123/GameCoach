@@ -45,7 +45,7 @@ class MjaiReviewProvider(
             val response = client.post(
                 path = "/mjai/batch",
                 bearerToken = token,
-                body = JSONObject().put("events", batch).toString(),
+                body = batch.toString(),
             )
             if (response.code == 429) return context.unavailable(MjaiAssessmentStatus.QuotaExceeded)
             if (response.code !in 200..299) return context.unavailable(MjaiAssessmentStatus.ProtocolError)
@@ -75,7 +75,9 @@ class MjaiReviewProvider(
         val result = mutableListOf<JSONArray>()
         var current = JSONArray()
         for (index in 0 until events.length()) {
-            val event = events.getJSONObject(index)
+            val event = JSONObject()
+                .put("seq", index)
+                .put("data", events.getJSONObject(index))
             val next = JSONArray(current.toString())
             next.put(event)
             if (next.toString().toByteArray(Charsets.UTF_8).size > MjaiConstants.MaxBatchBodyBytes && current.length() > 0) {
@@ -91,6 +93,7 @@ class MjaiReviewProvider(
 
     private fun parseActionResponse(body: String): JSONObject? {
         val json = JSONObject(body)
+        json.optJSONObject("act")?.let { return it }
         val responses = json.optJSONArray("responses")
         if (responses != null) {
             for (index in responses.length() - 1 downTo 0) {
@@ -113,7 +116,16 @@ class MjaiReviewProvider(
     }
 
     private fun String.fromMjaiTile(): String {
-        return replace("r", "")
+        return when (this) {
+            "E" -> "1z"
+            "S" -> "2z"
+            "W" -> "3z"
+            "N" -> "4z"
+            "P" -> "5z"
+            "F" -> "6z"
+            "C" -> "7z"
+            else -> replace("r", "")
+        }
     }
 
     private fun String.toMjaiWeightKey(): String {

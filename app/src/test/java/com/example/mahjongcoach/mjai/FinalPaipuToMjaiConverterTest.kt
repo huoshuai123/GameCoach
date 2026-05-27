@@ -24,6 +24,7 @@ class FinalPaipuToMjaiConverterTest {
         assertEquals("1m", tehais.getJSONArray(0).getString(0))
         assertEquals("?", tehais.getJSONArray(1).getString(0))
         assertEquals("5mr", tehais.getJSONArray(0).getString(4))
+        assertEquals("N", tehais.getJSONArray(0).getString(11))
     }
 
     @Test
@@ -36,7 +37,7 @@ class FinalPaipuToMjaiConverterTest {
             .map { it.getString("pai") }
 
         assertTrue(types.contains("tsumo"))
-        assertTrue(discardTiles.contains("7z"))
+        assertTrue(discardTiles.contains("C"))
         assertFalse("decision discard should not be sent before asking MJAI", discardTiles.contains("9p"))
     }
 
