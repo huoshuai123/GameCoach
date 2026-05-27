@@ -39,6 +39,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mahjongcoach.data.FinalPaipuDownload
 import com.example.mahjongcoach.data.FinalPaipuDownloadStatus
 import com.example.mahjongcoach.data.PaipuDetail
+import com.example.mahjongcoach.data.PaipuHistoryEntry
 import com.example.mahjongcoach.data.ParsedPaipuLink
 import com.example.mahjongcoach.data.SampleRound
 import com.example.mahjongcoach.domain.DecisionPoint
@@ -82,9 +83,11 @@ fun MahjongCoachApp(viewModel: ReviewViewModel = viewModel()) {
                     parsedLink = current.parsedLink,
                     paipuDetail = current.paipuDetail,
                     finalPaipuDownload = current.finalPaipuDownload,
+                    history = current.history,
                     isDownloading = current.isDownloading,
                     onInputChanged = viewModel::updateLinkInput,
                     onImportClick = viewModel::importPublicPaipu,
+                    onHistoryClick = viewModel::openHistory,
                 )
                 is ReviewUiState.Ready -> ReviewScreen(
                     selectedSample = current.selectedSample,
@@ -117,9 +120,11 @@ private fun LinkEntryScreen(
     parsedLink: ParsedPaipuLink?,
     paipuDetail: PaipuDetail?,
     finalPaipuDownload: FinalPaipuDownload?,
+    history: List<PaipuHistoryEntry>,
     isDownloading: Boolean,
     onInputChanged: (String) -> Unit,
     onImportClick: () -> Unit,
+    onHistoryClick: (String) -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier
@@ -146,8 +151,17 @@ private fun LinkEntryScreen(
             )
         }
 
+        if (history.isNotEmpty()) {
+            item {
+                HistoryPanel(
+                    history = history,
+                    onHistoryClick = onHistoryClick,
+                )
+            }
+        }
+
         item {
-            Text("当前版本不做账号登录、凭证保存或历史牌谱同步。", color = Color(0xFF5A625F))
+            Text("历史记录保存在本机；打开历史牌谱会直接读取已下载内容。", color = Color(0xFF5A625F))
             Spacer(Modifier.height(16.dp))
         }
     }
@@ -193,6 +207,34 @@ private fun LinkInputCard(
                     detail = paipuDetail,
                     download = finalPaipuDownload,
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistoryPanel(
+    history: List<PaipuHistoryEntry>,
+    onHistoryClick: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("历史记录", style = MaterialTheme.typography.h6, fontWeight = FontWeight.Bold)
+        history.forEach { entry ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onHistoryClick(entry.uuid) },
+                shape = RoundedCornerShape(8.dp),
+                elevation = 1.dp,
+                backgroundColor = Color(0xFFFFFCF7),
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(entry.title, fontWeight = FontWeight.Bold)
+                    if (entry.playerSummary.isNotBlank()) {
+                        Text(entry.playerSummary, style = MaterialTheme.typography.caption, color = Color(0xFF5A625F))
+                    }
+                    Text(entry.uuid, style = MaterialTheme.typography.caption, color = Color(0xFF5A625F))
+                }
             }
         }
     }

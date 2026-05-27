@@ -2,6 +2,7 @@ package com.example.mahjongcoach.ui
 
 import com.example.mahjongcoach.data.PaipuDetail
 import com.example.mahjongcoach.data.FinalPaipuDownload
+import com.example.mahjongcoach.data.PaipuHistoryEntry
 import com.example.mahjongcoach.data.ParsedPaipuLink
 import com.example.mahjongcoach.data.SampleRound
 import com.example.mahjongcoach.domain.DecisionPoint
@@ -14,6 +15,7 @@ sealed interface ReviewUiState {
         val parsedLink: ParsedPaipuLink? = null,
         val paipuDetail: PaipuDetail? = null,
         val finalPaipuDownload: FinalPaipuDownload? = null,
+        val history: List<PaipuHistoryEntry> = emptyList(),
         val isDownloading: Boolean = false,
     ) : ReviewUiState
 
