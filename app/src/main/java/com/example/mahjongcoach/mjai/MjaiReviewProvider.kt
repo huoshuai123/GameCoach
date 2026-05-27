@@ -152,7 +152,7 @@ class MjaiReviewProvider(
         val result = mutableListOf<JSONObject>()
         for (index in 0 until events.length()) {
             result += JSONObject()
-                .put("seq", index)
+                .put("seq", index + 1)
                 .put("data", events.getJSONObject(index))
         }
         return result

@@ -33,7 +33,7 @@ class MjaiReviewProviderTest {
         assertEquals(listOf("/user/trial", "/mjai/list", "/mjai/start", "/mjai/act", "/mjai/act", "/mjai/stop"), client.paths)
         assertTrue(client.bodies[2].contains(""""model":"mini""""))
         assertTrue(client.bodies[3].trim().startsWith("{"))
-        assertTrue(client.bodies[3].contains(""""seq":0"""))
+        assertTrue(client.bodies[3].contains(""""seq":1"""))
         assertTrue(client.bodies[3].contains(""""data""""))
         assertTrue(client.bodies[3].contains(""""type":"start_kyoku""""))
         assertEquals(MjaiAssessmentStatus.Success, result.single().status)
