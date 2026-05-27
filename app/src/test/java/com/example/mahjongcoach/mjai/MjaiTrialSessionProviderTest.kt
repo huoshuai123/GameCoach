@@ -20,6 +20,23 @@ class MjaiTrialSessionProviderTest {
     }
 
     @Test
+    fun fetchTrialSession_reusesTokenInMemory() {
+        val client = RecordingMjaiHttpClient(
+            MjaiHttpResponse(200, """{"id":"trial-token"}"""),
+            MjaiHttpResponse(403, """{"error":"active session exists"}"""),
+        )
+        val provider = MjaiTrialSessionProvider(client)
+
+        val first = provider.fetchTrialSession()
+        val second = provider.fetchTrialSession()
+
+        assertTrue(first.isSuccess)
+        assertTrue(second.isSuccess)
+        assertEquals("trial-token", second.getOrNull())
+        assertEquals("trial endpoint should only be called once while cached", 1, client.paths.size)
+    }
+
+    @Test
     fun fetchTrialSession_rejectsEmptyToken() {
         val client = RecordingMjaiHttpClient(
             MjaiHttpResponse(200, """{"token":""}"""),

@@ -5,7 +5,12 @@ import org.json.JSONObject
 class MjaiTrialSessionProvider(
     private val client: MjaiHttpClient = DefaultMjaiHttpClient(),
 ) {
+    private var cachedToken: String? = null
+
     fun fetchTrialSession(): Result<String> {
+        cachedToken?.takeIf { it.isNotBlank() }?.let {
+            return Result.success(it)
+        }
         return runCatching {
             val response = client.post(
                 "/user/trial",
@@ -23,7 +28,12 @@ class MjaiTrialSessionProvider(
             if (token.isBlank()) {
                 error("MJAI trial session response did not include a token")
             }
+            cachedToken = token
             token
         }
+    }
+
+    fun clearCachedSession() {
+        cachedToken = null
     }
 }
