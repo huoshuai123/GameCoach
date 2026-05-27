@@ -7,10 +7,15 @@ class RecordingMjaiHttpClient(
     val bodies = mutableListOf<String>()
     private var index = 0
 
+    override fun get(path: String, bearerToken: String?): MjaiHttpResponse {
+        paths += path
+        bodies += ""
+        return responses.getOrElse(index++) { responses.last() }
+    }
+
     override fun post(path: String, bearerToken: String?, body: String): MjaiHttpResponse {
         paths += path
         bodies += body
         return responses.getOrElse(index++) { responses.last() }
     }
 }
-

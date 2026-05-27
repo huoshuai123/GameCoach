@@ -20,10 +20,11 @@ class MjaiReviewProvider(
             logger.warn("Unable to obtain MJAI trial session: ${it.message.orEmpty().truncatedForLog()}")
             return contexts.map { it.unavailable(MjaiAssessmentStatus.TrialUnavailable) }
         }
+        val model = resolveModel(token)
 
         val firstAttempt = contexts.map { context ->
             runCatching {
-                assessContext(context, token)
+                assessContext(context, token, model)
             }.getOrElse {
                 context.unavailable(MjaiAssessmentStatus.NetworkError)
             }
@@ -38,9 +39,10 @@ class MjaiReviewProvider(
             logger.warn("Unable to obtain MJAI trial session for retry: ${it.message.orEmpty().truncatedForLog()}")
             return firstAttempt
         }
+        val retryModel = resolveModel(retryToken)
         val retriedById = retryContexts.associate { context ->
             val assessment = runCatching {
-                assessContext(context, retryToken)
+                assessContext(context, retryToken, retryModel)
             }.getOrElse {
                 context.unavailable(MjaiAssessmentStatus.NetworkError)
             }
@@ -52,13 +54,41 @@ class MjaiReviewProvider(
         }
     }
 
-    private fun assessContext(context: MjaiDecisionContext, token: String): MjaiAssessment {
+    private fun resolveModel(token: String): String {
+        val response = runCatching { client.get("/mjai/list", token) }.getOrElse {
+            logger.warn("MJAI /mjai/list failed before request completed: ${it.message.orEmpty().truncatedForLog()}")
+            return MjaiConstants.DefaultModel
+        }
+        if (response.code !in 200..299) {
+            logger.warn("MJAI /mjai/list failed: HTTP ${response.code}, body=${response.body.truncatedForLog()}")
+            return MjaiConstants.DefaultModel
+        }
+
+        val permit = runCatching {
+            val array = JSONObject(response.body).optJSONArray("permit") ?: JSONArray()
+            (0 until array.length()).mapNotNull { index -> array.optString(index).takeIf { it.isNotBlank() } }
+        }.getOrDefault(emptyList())
+        val selected = when {
+            permit.contains(MjaiConstants.DefaultModel) -> MjaiConstants.DefaultModel
+            else -> permit.firstOrNull { !it.startsWith("3p", ignoreCase = true) }
+        }
+        if (selected == null) {
+            logger.warn("MJAI /mjai/list did not include an accessible 4-player model: body=${response.body.truncatedForLog()}")
+            return MjaiConstants.DefaultModel
+        }
+        if (selected != MjaiConstants.DefaultModel) {
+            logger.warn("Default MJAI model '${MjaiConstants.DefaultModel}' unavailable; using '$selected'.")
+        }
+        return selected
+    }
+
+    private fun assessContext(context: MjaiDecisionContext, token: String, model: String): MjaiAssessment {
         val start = client.post(
             path = "/mjai/start",
             bearerToken = token,
             body = JSONObject()
                 .put("id", context.viewSeat)
-                .put("model", MjaiConstants.DefaultModel)
+                .put("model", model)
                 .put("bound", 0)
                 .toString(),
         )
@@ -110,7 +140,7 @@ class MjaiReviewProvider(
             recommendedDiscard = recommended,
             recommendedWeight = recommended?.let { weights?.optDouble(it.toMjaiWeightKey(), Double.NaN) }?.takeIf { !it.isNaN() },
             chosenWeight = weights?.optDouble(context.chosenDiscard.toMjaiWeightKey(), Double.NaN)?.takeIf { !it.isNaN() },
-            model = MjaiConstants.DefaultModel,
+            model = model,
             status = if (recommended != null) MjaiAssessmentStatus.Success else MjaiAssessmentStatus.ProtocolError,
         )
     }

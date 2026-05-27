@@ -21,6 +21,7 @@ class MjaiReviewProviderTest {
     fun assess_usesTrialTokenMiniModelAndStopsSession() = runBlocking {
         val client = RecordingMjaiHttpClient(
             MjaiHttpResponse(200, """{"id":"trial-token"}"""),
+            MjaiHttpResponse(200, """{"models":["mini"],"permit":["mini"]}"""),
             MjaiHttpResponse(200, """{"status":"ok"}"""),
             MjaiHttpResponse(200, """{"act":{"type":"dahai","pai":"1m","meta":{"q_values":{"1m":0.72,"9p":0.12}}}}"""),
             MjaiHttpResponse(200, """{"status":"ok"}"""),
@@ -28,16 +29,33 @@ class MjaiReviewProviderTest {
 
         val result = MjaiReviewProvider(client = client).assess(samplePaipu(), sampleReport())
 
-        assertEquals(listOf("/user/trial", "/mjai/start", "/mjai/batch", "/mjai/stop"), client.paths)
-        assertTrue(client.bodies[1].contains(""""model":"mini""""))
-        assertTrue(client.bodies[2].trim().startsWith("["))
-        assertTrue(client.bodies[2].contains(""""seq":0"""))
-        assertTrue(client.bodies[2].contains(""""data""""))
-        assertTrue(client.bodies[2].contains(""""type":"start_kyoku""""))
+        assertEquals(listOf("/user/trial", "/mjai/list", "/mjai/start", "/mjai/batch", "/mjai/stop"), client.paths)
+        assertTrue(client.bodies[2].contains(""""model":"mini""""))
+        assertTrue(client.bodies[3].trim().startsWith("["))
+        assertTrue(client.bodies[3].contains(""""seq":0"""))
+        assertTrue(client.bodies[3].contains(""""data""""))
+        assertTrue(client.bodies[3].contains(""""type":"start_kyoku""""))
         assertEquals(MjaiAssessmentStatus.Success, result.single().status)
         assertEquals("1m", result.single().recommendedDiscard)
         assertEquals(0.72, result.single().recommendedWeight ?: 0.0, 0.001)
         assertEquals(0.12, result.single().chosenWeight ?: 0.0, 0.001)
+    }
+
+    @Test
+    fun assess_usesPermittedModelWhenDefaultModelIsUnavailable() = runBlocking {
+        val client = RecordingMjaiHttpClient(
+            MjaiHttpResponse(200, """{"id":"trial-token"}"""),
+            MjaiHttpResponse(200, """{"models":["finetuned-s1"],"permit":["finetuned-s1"]}"""),
+            MjaiHttpResponse(200, """{"status":"ok"}"""),
+            MjaiHttpResponse(200, """{"act":{"type":"dahai","pai":"1m","meta":{"q_values":{"1m":0.72,"9p":0.12}}}}"""),
+            MjaiHttpResponse(200, """{"status":"ok"}"""),
+        )
+
+        val result = MjaiReviewProvider(client = client).assess(samplePaipu(), sampleReport())
+
+        assertEquals(MjaiAssessmentStatus.Success, result.single().status)
+        assertEquals("finetuned-s1", result.single().model)
+        assertTrue(client.bodies[2].contains(""""model":"finetuned-s1""""))
     }
 
     @Test
@@ -54,8 +72,10 @@ class MjaiReviewProviderTest {
     fun assess_retriesWithNewTrialSessionWhenCachedSessionIsUnauthorized() = runBlocking {
         val store = FakeMjaiSessionStore("stale-token", Long.MAX_VALUE)
         val client = RecordingMjaiHttpClient(
+            MjaiHttpResponse(200, """{"models":["mini"],"permit":["mini"]}"""),
             MjaiHttpResponse(401, """{"error":"operation not permitted"}"""),
             MjaiHttpResponse(200, """{"id":"fresh-token"}"""),
+            MjaiHttpResponse(200, """{"models":["mini"],"permit":["mini"]}"""),
             MjaiHttpResponse(200, """{"status":"ok"}"""),
             MjaiHttpResponse(200, """{"act":{"type":"dahai","pai":"1m","meta":{"q_values":{"1m":0.72,"9p":0.12}}}}"""),
             MjaiHttpResponse(200, """{"status":"ok"}"""),
@@ -72,7 +92,7 @@ class MjaiReviewProviderTest {
 
         assertEquals(MjaiAssessmentStatus.Success, result.single().status)
         assertEquals("fresh-token", store.token)
-        assertEquals(listOf("/mjai/start", "/user/trial", "/mjai/start", "/mjai/batch", "/mjai/stop"), client.paths)
+        assertEquals(listOf("/mjai/list", "/mjai/start", "/user/trial", "/mjai/list", "/mjai/start", "/mjai/batch", "/mjai/stop"), client.paths)
     }
 
     private fun sampleReport(): EvaluationReport {
