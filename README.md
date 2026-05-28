@@ -30,6 +30,7 @@ docs/
   product-spec.md              # 雀魂复盘教练产品规格
   review-report-schema.md      # 复盘报告结构规范
   android-architecture.md      # Android 工程分层与边界
+  android-e2e-testing.md       # Android 真网络端到端测试说明
   cross-platform-contract.md   # 跨端迁移契约
   candidate-archive.md         # A/B/C 方向归档
 samples/

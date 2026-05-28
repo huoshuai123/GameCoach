@@ -38,6 +38,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -196,13 +197,17 @@ private fun LinkInputCard(
             TextField(
                 value = input,
                 onValueChange = onInputChanged,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(MahjongCoachTestTags.LinkInput),
                 placeholder = { Text("粘贴雀魂公开牌谱链接") },
             )
             Button(
                 onClick = onImportClick,
                 enabled = input.isNotBlank() && !isDownloading,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(MahjongCoachTestTags.ImportButton),
             ) {
                 Text(if (isDownloading) "正在导入" else "导入牌谱")
             }
@@ -277,6 +282,7 @@ private fun ImportResultPanel(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .testTag(MahjongCoachTestTags.ImportResult)
             .background(background, RoundedCornerShape(8.dp))
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -327,6 +333,7 @@ private fun ReviewScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
+            .testTag(MahjongCoachTestTags.ReviewScreen)
             .padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {

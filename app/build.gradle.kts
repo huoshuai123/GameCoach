@@ -29,6 +29,18 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
+    testOptions {
+        managedDevices {
+            devices {
+                maybeCreate<com.android.build.api.dsl.ManagedVirtualDevice>("pixel6Api33").apply {
+                    device = "Pixel 6"
+                    apiLevel = 33
+                    systemImageSource = "google-atd"
+                }
+            }
+        }
+    }
 }
 
 dependencies {
@@ -46,7 +58,14 @@ dependencies {
     implementation("io.github.ssttkkl:mahjong-utils:0.7.7")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20231013")
+
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    androidTestImplementation("androidx.test:core-ktx:1.5.0")
+    androidTestImplementation("androidx.test.ext:junit-ktx:1.1.5")
+    androidTestImplementation("androidx.test:runner:1.5.2")
+    androidTestImplementation("androidx.test:rules:1.5.0")
 }
