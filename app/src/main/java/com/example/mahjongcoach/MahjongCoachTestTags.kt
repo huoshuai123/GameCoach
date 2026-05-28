@@ -5,4 +5,6 @@ object MahjongCoachTestTags {
     const val ImportButton = "import_button"
     const val ImportResult = "import_result"
     const val ReviewScreen = "review_screen"
+
+    fun historyItem(uuid: String): String = "history_item_$uuid"
 }

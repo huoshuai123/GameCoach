@@ -1,5 +1,6 @@
 package com.example.mahjongcoach.mjai
 
+import com.example.mahjongcoach.ReviewAiProvider
 import com.example.mahjongcoach.data.FinalPaipu
 import com.example.mahjongcoach.domain.EvaluationReport
 import org.json.JSONArray
@@ -10,8 +11,8 @@ class MjaiReviewProvider(
     private val trialSessionProvider: MjaiTrialSessionProvider = MjaiTrialSessionProvider(client),
     private val converter: FinalPaipuToMjaiConverter = FinalPaipuToMjaiConverter(),
     private val logger: MjaiLogger = StdoutMjaiLogger,
-) {
-    suspend fun assess(paipu: FinalPaipu, report: EvaluationReport): List<MjaiAssessment> {
+) : ReviewAiProvider {
+    override suspend fun assess(paipu: FinalPaipu, report: EvaluationReport): List<MjaiAssessment> {
         val contexts = converter.contexts(paipu, report.decisionPoints)
         if (contexts.isEmpty()) return emptyList()
         logger.info("Assessing ${contexts.size} decision context(s) with MJAI.")

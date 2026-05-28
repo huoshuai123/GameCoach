@@ -236,6 +236,7 @@ private fun HistoryPanel(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .testTag(MahjongCoachTestTags.historyItem(entry.uuid))
                     .clickable { onHistoryClick(entry.uuid) },
                 shape = RoundedCornerShape(8.dp),
                 elevation = 1.dp,
@@ -537,7 +538,7 @@ private fun DecisionDetail(decision: DecisionPoint) {
         decision.aiSource?.let { DetailLine("AI 来源", it) }
         decision.aiRecommendedChoice?.let { DetailLine("AI 推荐", it) }
         decision.aiConfidence?.let { DetailLine("AI 推荐强度", String.format("%.2f", it)) }
-        decision.aiStatus?.let { DetailLine("AI 状态", it) }
+        decision.aiStatus?.let { DetailLine("AI 状态", it.aiStatusDisplayText()) }
         decision.contextSnapshot?.let { DecisionSnapshotDetail(decision, it) }
         DetailLine("原因", decision.reason)
         DetailLine("训练建议", decision.trainingTip)
@@ -761,6 +762,17 @@ private fun DecisionPoint.choiceTiles(): Set<String> {
         .findAll("$currentChoice $recommendedChoice")
         .map { it.value.normalizedTileKey() }
         .toSet()
+}
+
+private fun String.aiStatusDisplayText(): String {
+    return when (this) {
+        "success" -> "MJAI 已完成"
+        "trial_unavailable" -> "MJAI 试用暂不可用"
+        "quota_exceeded" -> "MJAI 额度已用完"
+        "protocol_error" -> "MJAI 协议异常"
+        "network_error" -> "MJAI 网络异常"
+        else -> this
+    }
 }
 
 private fun List<String>.sortedTiles(): List<String> {

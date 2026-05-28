@@ -3,6 +3,8 @@ package com.example.mahjongcoach.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.mahjongcoach.ReviewAiProvider
+import com.example.mahjongcoach.ReviewDependencyOverrides
 import com.example.mahjongcoach.data.PaipuHistoryRepository
 import com.example.mahjongcoach.data.PaipuImportPipeline
 import com.example.mahjongcoach.data.SampleRound
@@ -28,7 +30,7 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
     private val analyzer = FinalPaipuAnalyzer()
     private val evaluator = MahjongRoundEvaluator()
     private val importPipeline = PaipuImportPipeline()
-    private val mjaiReviewProvider = MjaiReviewProvider(
+    private val mjaiReviewProvider: ReviewAiProvider = ReviewDependencyOverrides.aiReviewProvider ?: MjaiReviewProvider(
         trialSessionProvider = MjaiTrialSessionProvider(
             sessionStore = SharedPreferencesMjaiSessionStore(application),
         )
